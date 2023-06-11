@@ -67,7 +67,10 @@ public class YourService extends KiboRpcService {
             boolean succeed = false;
 
             while(!succeed && i < tries) {
+                long currTime = myApi.getTimeRemaining().get(1);
                 succeed = myApi.moveTo(dataPoint.point, dataPoint.quaternion, dataPoint.print).hasSucceeded();
+
+                while(currTime - myApi.getTimeRemaining().get(1) < 2000) {}
                 i++;
             }
         }
@@ -82,7 +85,10 @@ public class YourService extends KiboRpcService {
             boolean succeed = false;
 
             while(!succeed && i < tries) {
+                long currTime = myApi.getTimeRemaining().get(1);
                 succeed = myApi.moveTo(dataPoint.point, dataPoint.quaternion, dataPoint.print).hasSucceeded();
+
+                while(currTime - myApi.getTimeRemaining().get(1) < 2000) {}
                 i++;
             }
         }
