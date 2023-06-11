@@ -19,20 +19,21 @@ public class YourService extends KiboRpcService {
             List<Integer> active = myApi.getActiveTargets();
 
             for(Integer i: active) {
+                System.out.println("I'm going to Target " + i);
                 CraigMoveTo(i);
+
+                myApi.laserControl(true);
+                try {
+                    Thread.sleep(1000);
+                } catch(InterruptedException e) {
+                    System.out.println("Error with laser sleep");
+                }
+                myApi.takeTargetSnapshot(i);
 
                 if(myApi.getTimeRemaining().get(1) > 60000) {
                     break;
                 }
             }
-
-            myApi.laserControl(true);
-            try {
-                Thread.sleep(1000);
-            } catch(InterruptedException e) {
-                System.out.println("Error with laser sleep");
-            }
-            myApi.laserControl(false);
         }
 
         myApi.notifyGoingToGoal();
