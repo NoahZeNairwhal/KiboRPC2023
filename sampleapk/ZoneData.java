@@ -5,7 +5,7 @@ import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 
 public class ZoneData {
-    public static double[] outXMin = {10,783, 10.8652, 10.185, 10.7955, 10.563};
+    public static double[] outXMin = {10.783, 10.8652, 10.185, 10.7955, 10.563};
     public static double inXMin = 10.3;
     public static double[] outYMin = {-9.8899, -9.0734, -8.3826, -8.0635, -7.1449};
     public static double inYMin = -10.2;
