@@ -11,7 +11,7 @@ import java.util.List;
 
 public class YourService extends KiboRpcService {
     //Use logger.info(String) or other logger methods if you want to log things in the log file
-    private static final Log logger = LogFactory.getLog(YourService.class);
+    public static final Log logger = LogFactory.getLog(YourService.class);
     //So that I can access the api from other classes in this package
     public static KiboRpcApi myApi;
     public static boolean moveToGoal = false;
@@ -29,6 +29,13 @@ public class YourService extends KiboRpcService {
             //For each active target
             for(Integer i: active) {
                 CraigMoveTo(i);
+
+                //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
+                if(myApi.getTimeRemaining().get(1) <= 90000 && !bypass) {
+                    moveToGoal = true;
+                    break;
+                }
+
                 logger.info("I should be at Target #" + i);
 
                 //Activate laser
@@ -40,20 +47,16 @@ public class YourService extends KiboRpcService {
                 }
                 //Screenshot target, automatically deactivates laser
                 myApi.takeTargetSnapshot(i);
-
-                //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 60000 && !bypass) {
-                    moveToGoal = true;
-                    break;
-                }
             }
         }
 
         bypass = true;
+        CraigMoveTo(7);
+        QRDecipher.decipher();
         myApi.notifyGoingToGoal();
         //8 is the goal
         CraigMoveTo(8);
-        myApi.reportMissionCompletion("I_AM_HERE");
+        myApi.reportMissionCompletion(QRDecipher.reportString);
     }
 
     @Override
@@ -67,11 +70,11 @@ public class YourService extends KiboRpcService {
     }
 
     public static void CraigMoveTo(int targetNum) {
-        CraigMoveTo(targetNum, 3);
+        CraigMoveTo(targetNum, 2);
     }
 
     public static void CraigMoveTo(moveData endData) {
-        CraigMoveTo(endData, 3);
+        CraigMoveTo(endData, 2);
     }
 
     public static void CraigMoveTo(int targetNum, int tries) {
@@ -86,7 +89,7 @@ public class YourService extends KiboRpcService {
 
             //i < tries prevents an infinite loop
             while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 60000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 90000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
@@ -94,6 +97,10 @@ public class YourService extends KiboRpcService {
                 succeed = myApi.moveTo(dataPoint.point, dataPoint.quaternion, dataPoint.print).hasSucceeded();
                 i++;
             }
+        }
+
+        if(targetNum <= 6) {
+            ARDetector.detect();
         }
     }
 
@@ -107,7 +114,7 @@ public class YourService extends KiboRpcService {
             boolean succeed = false;
 
             while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 60000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 90000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
