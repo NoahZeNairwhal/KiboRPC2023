@@ -14,13 +14,15 @@ public class YourService extends KiboRpcService {
     private static final Log logger = LogFactory.getLog(YourService.class);
     //So that I can access the api from other classes in this package
     public static KiboRpcApi myApi;
+    public static boolean moveToGoal = false;
+
     @Override
     protected void runPlan1() {
         myApi = api;
         myApi.startMission();
 
         //While more than a minute total time remains
-        while(myApi.getTimeRemaining().get(1) > 75000) {
+        while(!moveToGoal) {
             List<Integer> active = myApi.getActiveTargets();
 
             //For each active target
@@ -39,7 +41,8 @@ public class YourService extends KiboRpcService {
                 myApi.takeTargetSnapshot(i);
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) > 75000) {
+                if(myApi.getTimeRemaining().get(1) <= 60000) {
+                    moveToGoal = true;
                     break;
                 }
             }
@@ -81,6 +84,11 @@ public class YourService extends KiboRpcService {
 
             //i < tries prevents an infinite loop
             while(!succeed && i < tries) {
+                if(myApi.getTimeRemaining().get(1) <= 60000) {
+                    moveToGoal = true;
+                    return;
+                }
+
                 succeed = myApi.moveTo(dataPoint.point, dataPoint.quaternion, dataPoint.print).hasSucceeded();
                 i++;
             }
@@ -97,6 +105,11 @@ public class YourService extends KiboRpcService {
             boolean succeed = false;
 
             while(!succeed && i < tries) {
+                if(myApi.getTimeRemaining().get(1) <= 60000) {
+                    moveToGoal = true;
+                    return;
+                }
+
                 succeed = myApi.moveTo(dataPoint.point, dataPoint.quaternion, dataPoint.print).hasSucceeded();
                 i++;
             }
