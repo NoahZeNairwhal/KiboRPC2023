@@ -20,17 +20,18 @@ public class YourService extends KiboRpcService {
         myApi.startMission();
 
         //While more than a minute total time remains
-        while(myApi.getTimeRemaining().get(1) > 60000) {
+        while(myApi.getTimeRemaining().get(1) > 75000) {
             List<Integer> active = myApi.getActiveTargets();
 
             //For each active target
             for(Integer i: active) {
                 CraigMoveTo(i);
+                logger.info("I should be at Target #" + i);
 
                 //Activate laser
                 myApi.laserControl(true);
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch(InterruptedException e) {
                     logger.error("Error with laser sleep");
                 }
@@ -38,7 +39,7 @@ public class YourService extends KiboRpcService {
                 myApi.takeTargetSnapshot(i);
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) > 60000) {
+                if(myApi.getTimeRemaining().get(1) > 75000) {
                     break;
                 }
             }
@@ -61,11 +62,11 @@ public class YourService extends KiboRpcService {
     }
 
     public static void CraigMoveTo(int targetNum) {
-        CraigMoveTo(targetNum, 5);
+        CraigMoveTo(targetNum, 3);
     }
 
     public static void CraigMoveTo(moveData endData) {
-        CraigMoveTo(endData, 5);
+        CraigMoveTo(endData, 3);
     }
 
     public static void CraigMoveTo(int targetNum, int tries) {
