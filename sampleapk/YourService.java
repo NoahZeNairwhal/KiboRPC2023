@@ -15,6 +15,7 @@ public class YourService extends KiboRpcService {
     //So that I can access the api from other classes in this package
     public static KiboRpcApi myApi;
     public static boolean moveToGoal = false;
+    public static boolean bypass = false;
 
     @Override
     protected void runPlan1() {
@@ -33,7 +34,7 @@ public class YourService extends KiboRpcService {
                 //Activate laser
                 myApi.laserControl(true);
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                 } catch(InterruptedException e) {
                     logger.error("Error with laser sleep");
                 }
@@ -41,13 +42,14 @@ public class YourService extends KiboRpcService {
                 myApi.takeTargetSnapshot(i);
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 60000) {
+                if(myApi.getTimeRemaining().get(1) <= 60000 && !bypass) {
                     moveToGoal = true;
                     break;
                 }
             }
         }
 
+        bypass = true;
         myApi.notifyGoingToGoal();
         //8 is the goal
         CraigMoveTo(8);
@@ -84,7 +86,7 @@ public class YourService extends KiboRpcService {
 
             //i < tries prevents an infinite loop
             while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 60000) {
+                if(myApi.getTimeRemaining().get(1) <= 60000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
@@ -105,7 +107,7 @@ public class YourService extends KiboRpcService {
             boolean succeed = false;
 
             while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 60000) {
+                if(myApi.getTimeRemaining().get(1) <= 60000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
