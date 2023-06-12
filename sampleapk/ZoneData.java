@@ -30,7 +30,7 @@ public class ZoneData {
     //Maximum Z bound of big KIZ
     public static double inZMax = 5.57;
     //Meant to take into account the size of Astrobee and the randomness of the environment to avoid hitting the edges of the KOZ while pathfinding
-    public static final double AVOIDANCE = 0.25;
+    public static final double AVOIDANCE = 0.2;
 
     //Returns a list of data points between the current position and a given end position in order to avoid hitting KOZ
     public static List<moveData> intermediateData(moveData endData) {
