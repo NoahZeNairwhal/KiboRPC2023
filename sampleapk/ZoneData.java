@@ -30,7 +30,7 @@ public class ZoneData {
     //Maximum Z bound of big KIZ
     public static double inZMax = 5.57;
     //Meant to take into account the size of Astrobee and the randomness of the environment to avoid hitting the edges of the KOZ while pathfinding
-    public static final double AVOIDANCE = 0.4;
+    public static final double AVOIDANCE = 0.25;
 
     //Returns a list of data points between the current position and a given end position in order to avoid hitting KOZ
     public static List<moveData> intermediateData(moveData endData) {
@@ -49,18 +49,6 @@ public class ZoneData {
 
             //Checks if Astrobee passes by/through the KOZ
             if((currentData.point.getY() <= outYMin[i] && endData.point.getY() >= outYMax[i]) || (currentData.point.getY() >= outYMax[i] && endData.point.getY() <= outYMin[i])) {
-                /*//Gets the slope with respect to different variables, so we can better pathfind
-                double  dydx = dydx(currentData, endData),
-                        dzdx = dzdx(currentData, endData),
-                        dxdy = dxdy(currentData, endData),
-                        dzdy = dzdy(currentData, endData),
-                        dxdz = dxdz(currentData, endData),
-                        dydz = dydz(currentData, endData);
-
-                //Sum of slopes that are with respect to the given variables
-                double xSum = dydx + dzdx;
-                double ySum = dxdy + dzdy;
-                double zSum = dxdz + dydz;*/
                 //Whether or not Astrobee is moving left to right (example: Bay 7 to Bay 6)
                 boolean leftToRight = Math.abs(currentData.point.getY() - outYMin[i]) < Math.abs(currentData.point.getY() - outYMax[i]);
                 //Whether or not Astrobee is moving down to up (example: floor to ceiling) {
@@ -74,100 +62,171 @@ public class ZoneData {
                 double x1 = Double.MAX_VALUE, y1 = Double.MAX_VALUE, z1 = Double.MAX_VALUE, x2 = Double.MAX_VALUE, y2 = Double.MAX_VALUE, z2 = Double.MAX_VALUE;
                 //The values for the quaternion (x, y, z, w)
                 float q1 = 1, q2 = 0, q3 = 0, q4 = 0;
-                //The lines formed by avoiding the KOZ on either side for each variable
-                double xFirst = backToFront ? outXMax[i] + AVOIDANCE : outXMin[i] - AVOIDANCE;
-                double xSecond = backToFront ? outXMin[i] - AVOIDANCE : outXMax[i] + AVOIDANCE;
+                //The lines formed by avoiding the KOZ on either side for each variable. Which comes first depends on the direction of Astrobee's movement
+                double xFirst = backToFront ? outXMin[i] - AVOIDANCE : outXMax[i] + AVOIDANCE;
+                double xSecond = backToFront ? outXMax[i] + AVOIDANCE : outXMin[i] - AVOIDANCE;
                 double yFirst = leftToRight ? outYMin[i] - AVOIDANCE : outYMax[i] + AVOIDANCE;
                 double ySecond = leftToRight ? outYMax[i] + AVOIDANCE : outYMin[i] - AVOIDANCE;
                 double zFirst = downToUp ? outZMax[i] + AVOIDANCE : outZMin[i] - AVOIDANCE;
                 double zSecond = downToUp ? outZMin[i] - AVOIDANCE : outZMax[i] + AVOIDANCE;
 
                 //The number of iterations for the loops to go through (remember, it will do steps^2 iterations)
-                int steps = 25;
+                int steps = 10;
 
                 //Checks whether it even makes sense to calculate while holding x constant
                 if(xFirst >= inXMin && xFirst <= inXMax && xSecond >= inXMin && xSecond <= inXMax) {
+                    //Checks for possible valid y
                     for(double y = inYMin; y <= inYMax; y += (inYMax - inYMin) / steps) {
+                        //Checks for possible valid z
                         for(double z = inZMin; z <= inZMax; z += (inZMax - inZMin) / steps) {
-                            double temp = distance(xFirst, y, z, currentData) + distance(xSecond, y, z, endData);
+                            //Checks whether the z, y, or neither end up inside the KOZ. If both are inside then the path won't work
+                            boolean badZ_goodY = false;
+                            boolean badY_goodZ = false;
+                            boolean goodY_goodZ = false;
+                            if (z <= outZMax[i] && z >= outZMax[i]) {
+                                if (y - AVOIDANCE >= outYMax[i] || y + AVOIDANCE <= outYMin[i]) {
+                                    badZ_goodY = true;
+                                }
+                            }
+                            if (y <= outYMax[i] && y >= outYMin[i]) {
+                                if (z - AVOIDANCE >= outZMax[i] || z + AVOIDANCE >= outZMin[i]) {
+                                    badY_goodZ = true;
+                                }
+                            }
+                            if (y - AVOIDANCE >= outYMax[i] || y + AVOIDANCE <= outYMin[i]) {
+                                if (z - AVOIDANCE >= outZMax[i] || z + AVOIDANCE >= outZMin[i]) {
+                                    goodY_goodZ = true;
+                                }
+                            }
 
-                            if(temp < leastDistance) {
-                                leastDistance = temp;
-                                x1 = xFirst;
-                                y1 = y;
-                                z1 = z;
-                                x2 = xSecond;
-                                y2 = y;
-                                z2 = z;
+                            if (badZ_goodY || badY_goodZ || goodY_goodZ) {
+                                //Distance that would be created by this path
+                                double temp = distance(xFirst, y, z, currentData) + distance(xSecond, y, z, endData) + Math.abs(xSecond - xFirst);
 
-                                if(backToFront) {
-                                    q1 = 1f;
-                                    q2 = 0f;
-                                    q3 = 0f;
-                                    q4 = 0f;
-                                } else {
-                                    q1 = 0f;
-                                    q2 = 0.707f;
-                                    q3 = 0.707f;
-                                    q4 = 0f;
+                                //If the distance is less, this becomes the new path
+                                if (temp < leastDistance) {
+                                    leastDistance = temp;
+                                    x1 = xFirst;
+                                    y1 = y;
+                                    z1 = z;
+                                    x2 = xSecond;
+                                    y2 = y;
+                                    z2 = z;
+
+                                    //Orients it correctly
+                                    if (backToFront) {
+                                        q1 = 1f;
+                                        q2 = 0f;
+                                        q3 = 0f;
+                                        q4 = 0f;
+                                    } else {
+                                        q1 = 0f;
+                                        q2 = 0.707f;
+                                        q3 = 0.707f;
+                                        q4 = 0f;
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                //Repeat for y
                 if(yFirst >= inYMin && yFirst <= inYMax && ySecond >= inYMin && ySecond <= inYMax) {
                     for(double x = inXMin; x <= inXMax; x += (inXMax - inXMin) / steps) {
                         for(double z = inZMin; z <= inZMax; z += (inZMax - inZMin) / steps) {
-                            double temp = distance(x, yFirst, z, currentData) + distance(x, ySecond, z, endData);
+                            boolean badZ_goodX = false;
+                            boolean badX_goodZ = false;
+                            boolean goodX_goodZ = false;
+                            if (z <= outZMax[i] && z >= outZMax[i]) {
+                                if (x - AVOIDANCE >= outXMax[i] || x + AVOIDANCE <= outXMin[i]) {
+                                    badZ_goodX = true;
+                                }
+                            }
+                            if (x <= outXMax[i] && x >= outXMin[i]) {
+                                if (z - AVOIDANCE >= outZMax[i] || z + AVOIDANCE >= outZMin[i]) {
+                                    badX_goodZ = true;
+                                }
+                            }
+                            if (x - AVOIDANCE >= outXMax[i] || x + AVOIDANCE <= outXMin[i]) {
+                                if (z - AVOIDANCE >= outZMax[i] || z + AVOIDANCE >= outZMin[i]) {
+                                    goodX_goodZ = true;
+                                }
+                            }
 
-                            if(temp < leastDistance) {
-                                leastDistance = temp;
-                                x1 = x;
-                                y1 = yFirst;
-                                z1 = z;
-                                x2 = x;
-                                y2 = ySecond;
-                                z2 = z;
+                            if (badZ_goodX || badX_goodZ || goodX_goodZ) {
+                                double temp = distance(x, yFirst, z, currentData) + distance(x, ySecond, z, endData) + Math.abs(ySecond - yFirst);
 
-                                if(leftToRight) {
-                                    q1 = 0f;
-                                    q2 = 0.707f;
-                                    q3 = 0f;
-                                    q4 = -0.707f;
-                                } else {
-                                    q1 = 0f;
-                                    q2 = 0.707f;
-                                    q3 = 0f;
-                                    q4 = 0.707f;
+                                if (temp < leastDistance) {
+                                    leastDistance = temp;
+                                    x1 = x;
+                                    y1 = yFirst;
+                                    z1 = z;
+                                    x2 = x;
+                                    y2 = ySecond;
+                                    z2 = z;
+
+                                    if (leftToRight) {
+                                        q1 = 0f;
+                                        q2 = 0.707f;
+                                        q3 = 0f;
+                                        q4 = -0.707f;
+                                    } else {
+                                        q1 = 0f;
+                                        q2 = 0.707f;
+                                        q3 = 0f;
+                                        q4 = 0.707f;
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                //Repeat for z
                 if(zFirst >= inZMin && zFirst <= inZMax && zSecond >= inZMin && zSecond <= inZMax) {
                     for(double x = inXMin; x <= inXMax; x += (inXMax - inXMin) / steps) {
                         for(double y = inYMin; y <= inYMax; y += (inYMax - inYMin) / steps) {
-                            double temp = distance(x, y, zFirst, currentData) + distance(x, y, zSecond, endData);
+                            boolean badY_goodX = false;
+                            boolean badX_goodY = false;
+                            boolean goodX_goodY = false;
+                            if (y <= outYMax[i] && y >= outYMax[i]) {
+                                if (x - AVOIDANCE >= outXMax[i] || x + AVOIDANCE <= outXMin[i]) {
+                                    badY_goodX = true;
+                                }
+                            }
+                            if (x <= outXMax[i] && x >= outXMin[i]) {
+                                if (y - AVOIDANCE >= outYMax[i] || y + AVOIDANCE >= outYMin[i]) {
+                                    badX_goodY = true;
+                                }
+                            }
+                            if (x - AVOIDANCE >= outXMax[i] || x + AVOIDANCE <= outXMin[i]) {
+                                if (y - AVOIDANCE >= outYMax[i] || y + AVOIDANCE >= outYMin[i]) {
+                                    goodX_goodY = true;
+                                }
+                            }
 
-                            if(temp < leastDistance) {
-                                leastDistance = temp;
-                                x1 = x;
-                                y1 = y;
-                                z1 = zFirst;
-                                x2 = x;
-                                y2 = y;
-                                z2 = zSecond;
+                            if (badY_goodX || badX_goodY || goodX_goodY) {
+                                double temp = distance(x, y, zFirst, currentData) + distance(x, y, zSecond, endData) + Math.abs(zSecond - zFirst);
 
-                                if(downToUp) {
-                                    q1 = 0f;
-                                    q2 = 0f;
-                                    q3 = 0.707f;
-                                    q4 = 0.707f;
-                                } else {
-                                    q1 = 0f;
-                                    q2 = 0f;
-                                    q3 = 0.707f;
-                                    q4 = -0.707f;
+                                if (temp < leastDistance) {
+                                    leastDistance = temp;
+                                    x1 = x;
+                                    y1 = y;
+                                    z1 = zFirst;
+                                    x2 = x;
+                                    y2 = y;
+                                    z2 = zSecond;
+
+                                    if (downToUp) {
+                                        q1 = 0f;
+                                        q2 = 0f;
+                                        q3 = 0.707f;
+                                        q4 = 0.707f;
+                                    } else {
+                                        q1 = 0f;
+                                        q2 = 0f;
+                                        q3 = 0.707f;
+                                        q4 = -0.707f;
+                                    }
                                 }
                             }
                         }
@@ -180,31 +239,6 @@ public class ZoneData {
         }
 
         return output;
-    }
-
-    //Returns the change in y in relation to the change in x of two moveData (assumes a constant slope)
-    private static double dydx(moveData start, moveData end) {
-        return (end.point.getY() - start.point.getY()) / (end.point.getX() / start.point.getX());
-    }
-    //Above but with the change in z in relation to the change in x
-    private static double dzdx(moveData start, moveData end) {
-        return (end.point.getY() - start.point.getY()) / (end.point.getX() / start.point.getX());
-    }
-    //x in relation to the change in y
-    private static double dxdy(moveData start, moveData end) {
-        return 1 / dydx(start, end);
-    }
-    //z in relation to the change in y
-    private static double dzdy(moveData start, moveData end) {
-        return dzdx(start, end) * dxdy(start, end);
-    }
-    //x in relation to z
-    private static double dxdz(moveData start, moveData end) {
-        return 1 / dzdx(start, end);
-    }
-    //y in relation to z
-    private static double dydz(moveData start, moveData end) {
-        return 1 / dzdy(start, end);
     }
 
     //Returns the distance between the current point and the point (x,y,z)
