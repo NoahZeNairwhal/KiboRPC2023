@@ -12,9 +12,9 @@ public class moveData {
     //Whether or not to log the position
     public boolean print;
     //The position tolerance of Astrobee when this moveData is checked against the current Kinematics
-    public static final double P_TOLERANCE = 0.35;
+    public static final double P_TOLERANCE = 0.2;
     //Same as above but for the angle (radians)
-    public static final double A_TOLERANCE = 0.2;
+    public static final double A_TOLERANCE = 0.1;
 
     //Creates a moveData representation of the current Kinematics
     public moveData() {
@@ -24,7 +24,7 @@ public class moveData {
         print = true;
     }
 
-    //Gives whether or not to print, uses current Kinematics
+    //Given whether or not to print, uses current Kinematics
     public moveData(boolean aPrint) {
         Kinematics currentKinematics = YourService.myApi.getRobotKinematics();
         point = currentKinematics.getPosition();
@@ -32,14 +32,14 @@ public class moveData {
         print = aPrint;
     }
 
-    //Gives the info for some point other than it's current point
+    //Given the info for some point other than it's current point
     public moveData (Point aPoint, Quaternion aQuaternion) {
         point = aPoint;
         quaternion = aQuaternion;
         print = true;
     }
 
-    //Same as above but also gives whether or not to print
+    //Same as above but also given whether or not to print
     public moveData (Point aPoint, Quaternion aQuaternion, boolean aPrint) {
         point = aPoint;
         quaternion = aQuaternion;
