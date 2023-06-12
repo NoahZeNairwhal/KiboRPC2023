@@ -79,6 +79,11 @@ public class ZoneData {
                     for(double y = inYMin; y <= inYMax; y += (inYMax - inYMin) / steps) {
                         //Checks for possible valid z
                         for(double z = inZMin; z <= inZMax; z += (inZMax - inZMin) / steps) {
+                            if(YourService.myApi.getTimeRemaining().get(1) <= 60000) {
+                                YourService.moveToGoal = true;
+                                return new ArrayList<moveData>();
+                            }
+
                             //Checks whether the z, y, or neither end up inside the KOZ. If both are inside then the path won't work
                             boolean badZ_goodY = false;
                             boolean badY_goodZ = false;
@@ -134,6 +139,11 @@ public class ZoneData {
                 if(yFirst >= inYMin && yFirst <= inYMax && ySecond >= inYMin && ySecond <= inYMax) {
                     for(double x = inXMin; x <= inXMax; x += (inXMax - inXMin) / steps) {
                         for(double z = inZMin; z <= inZMax; z += (inZMax - inZMin) / steps) {
+                            if(YourService.myApi.getTimeRemaining().get(1) <= 60000) {
+                                YourService.moveToGoal = true;
+                                return new ArrayList<moveData>();
+                            }
+
                             boolean badZ_goodX = false;
                             boolean badX_goodZ = false;
                             boolean goodX_goodZ = false;
@@ -185,6 +195,11 @@ public class ZoneData {
                 if(zFirst >= inZMin && zFirst <= inZMax && zSecond >= inZMin && zSecond <= inZMax) {
                     for(double x = inXMin; x <= inXMax; x += (inXMax - inXMin) / steps) {
                         for(double y = inYMin; y <= inYMax; y += (inYMax - inYMin) / steps) {
+                            if(YourService.myApi.getTimeRemaining().get(1) <= 60000) {
+                                YourService.moveToGoal = true;
+                                return new ArrayList<moveData>();
+                            }
+
                             boolean badY_goodX = false;
                             boolean badX_goodY = false;
                             boolean goodX_goodY = false;
