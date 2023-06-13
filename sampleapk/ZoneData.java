@@ -42,7 +42,7 @@ public class ZoneData {
 
         //For-each KOZ
         for(int i = 0; i < outYMin.length; i++) {
-            if(YourService.myApi.getTimeRemaining().get(1) <= 60000 && !YourService.bypass) {
+            if(YourService.myApi.getTimeRemaining().get(1) <= 120000 && !YourService.bypass) {
                 YourService.moveToGoal = true;
                 return new ArrayList<moveData>();
             }
@@ -59,7 +59,7 @@ public class ZoneData {
                 //Whether or not Astrobee is moving down to up (example: floor to ceiling) {
                 boolean downToUp = Math.abs(currentData.point.getZ() - outZMax[i]) < Math.abs(currentData.point.getZ() - outZMin[i]);
                 //Whether or not Astrobee is moving backwards to forwards (example: docking zone to the big KIZ)
-                boolean backToFront = Math.abs(currentData.point.getX() - outXMax[i]) < Math.abs(currentData.point.getX() - outXMin[i]);
+                boolean backToFront = Math.abs(currentData.point.getX() - outXMin[i]) < Math.abs(currentData.point.getX() - outXMax[i]);
 
                 //The least distance using the computed path
                 double leastDistance = Double.MAX_VALUE;
@@ -118,7 +118,7 @@ public class ZoneData {
                                     y2 = y;
                                     z2 = z;
 
-                                    //Orients it correctly
+                                    //Orients it correctly (probably)
                                     if (backToFront) {
                                         q1 = 1f;
                                         q2 = 0f;
