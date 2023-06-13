@@ -1,13 +1,12 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.opencv.aruco.Aruco;
 import org.opencv.core.Mat;
 import java.util.List;
 import java.util.ArrayList;
 
 public class ARDetector {
-    //The detector for the AR codes
-    public static Aruco detector = new Aruco();
     //The image from the navCam
     public static Mat image;
     //The four corners of each of the detected AR codes
@@ -23,15 +22,75 @@ public class ARDetector {
 
     //Returns a moveData object of where to move to in order to best hit the target
     public static moveData detect() {
+        image = new Mat();
+        ids = new Mat();
+        corners = new ArrayList<Mat>();
         image = YourService.myApi.getMatNavCam();
-        detector.detectMarkers(image, detector.getPredefinedDictionary(Aruco.DICT_5X5_250), corners, ids);
 
-        for(Mat corner: corners) {
-            YourService.logger.info("Cols: " + corner.cols());
-            YourService.logger.info("Rows: " + corner.rows());
-            YourService.logger.info("Depth: " + corner.depth());
+        for(int i = 0; i < 4 && image == null; i++) {
+            try {
+               Thread.sleep(250);
+            } catch(InterruptedException e) {
+                YourService.logger.info("Error while sleeping during an image reset");
+            }
+
+            image = YourService.myApi.getMatNavCam();
         }
-        List<Double> centers = new ArrayList<Double>();
+
+        if(image == null) {
+            try {
+                Thread.sleep(500);
+            } catch(InterruptedException e) {
+                YourService.logger.info("Error while sleeping during a marker detection reset");
+            }
+
+            YourService.logger.info("ARDetctor.detect() could not execute since image was null");
+            return new moveData();
+        }
+
+        Aruco.detectMarkers(image, Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250), corners, ids);
+
+        for(int i = 0; i < 4 && ids == null && corners != null && corners.size() == 0; i++) {
+            Aruco.detectMarkers(image, Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250), corners, ids);
+        }
+
+        if(ids == null) {
+            YourService.logger.info("ARDetctor.detect() could not execute since ids was null");
+
+            if(corners == null || corners.size() == 0) {
+                YourService.logger.info("ARDetctor.detect() could not execute since corners had a size of 0 or it was null");
+            }
+
+            return new moveData();
+        } else if(corners == null || corners.size() == 0) {
+            YourService.logger.info("ARDetctor.detect() could not execute since corners had a size of 0 or it was null");
+            return new moveData();
+        }
+
+        List<double[]> centers = new ArrayList<double[]>();
+
+        for (Mat marker : corners) {
+            if (marker == null) {
+                YourService.logger.info("One of the corners seems to have been null");
+                continue;
+            } else {
+                YourService.logger.info("A marker: " + marker.dump());
+                double xAvg = 0.0;
+                double zAvg = 0.0;
+
+                for(int c = 0; c < marker.cols(); c++) {
+                    xAvg += marker.get(0, c)[1];
+                    zAvg += marker.get(0, c)[0];
+                }
+
+                xAvg /= 4.0;
+                zAvg /= 4.0;
+
+                centers.add(new double[]{xAvg, zAvg});
+
+                YourService.logger.info("X center: " + centers.get(centers.size() - 1)[0] + ", Z center: " + centers.get(centers.size() - 1)[1]);
+            }
+        }
 
         return new moveData();
     }
