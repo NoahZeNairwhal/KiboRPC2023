@@ -17,6 +17,16 @@ public class QRDecipher {
     public static void decipher() {
         //Stores what navCam sees in the Mat image (navCam needs to be seeing the qrCode)
         image = YourService.myApi.getMatNavCam();
+
+        for(int i = 0; i < 4 && image == null; i++) {
+            try {
+                Thread.sleep(500);
+            } catch(InterruptedException e) {
+                YourService.logger.info("Error while sleeping during a qr image reset");
+            }
+
+            image = YourService.myApi.getMatNavCam();
+        }
         //Get the plain decipher of the qr code
         qrString = detector.detectAndDecode(image);
 
