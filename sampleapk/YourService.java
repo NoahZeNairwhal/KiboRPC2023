@@ -31,7 +31,7 @@ public class YourService extends KiboRpcService {
                 CraigMoveTo(i);
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 90000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
                     moveToGoal = true;
                     break;
                 }
@@ -51,11 +51,17 @@ public class YourService extends KiboRpcService {
         }
 
         bypass = true;
+        logger.info("QRCode moveTo start");
         CraigMoveTo(7);
+        logger.info("QRCode moveTo end");
+        logger.info("QRCode decipher start");
         QRDecipher.decipher();
+        logger.info("QRCode decipher end");
         myApi.notifyGoingToGoal();
         //8 is the goal
+        logger.info("Goal moveTo start");
         CraigMoveTo(8);
+        logger.info("Goal moveTo end");
         myApi.reportMissionCompletion(QRDecipher.reportString);
     }
 
@@ -70,11 +76,11 @@ public class YourService extends KiboRpcService {
     }
 
     public static void CraigMoveTo(int targetNum) {
-        CraigMoveTo(targetNum, 2);
+        CraigMoveTo(targetNum, 3);
     }
 
     public static void CraigMoveTo(moveData endData) {
-        CraigMoveTo(endData, 2);
+        CraigMoveTo(endData, 3);
     }
 
     public static void CraigMoveTo(int targetNum, int tries) {
@@ -89,7 +95,7 @@ public class YourService extends KiboRpcService {
 
             //i < tries prevents an infinite loop
             while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 90000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
@@ -100,7 +106,9 @@ public class YourService extends KiboRpcService {
         }
 
         if(targetNum <= 6) {
+            logger.info("ARDetector start");
             ARDetector.detect();
+            logger.info("ARDetector end");
         }
     }
 
@@ -114,7 +122,7 @@ public class YourService extends KiboRpcService {
             boolean succeed = false;
 
             while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 90000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
