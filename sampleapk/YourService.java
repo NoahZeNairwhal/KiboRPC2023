@@ -1,6 +1,8 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import org.apache.commons.logging.*;
+
+import gov.nasa.arc.astrobee.types.Point;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcApi;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 import java.util.List;
@@ -52,12 +54,17 @@ public class YourService extends KiboRpcService {
 
         bypass = true;
         logger.info("QRCode moveTo start");
+        //7 is the QR Code
         CraigMoveTo(7);
         logger.info("QRCode moveTo end");
         logger.info("QRCode decipher start");
         QRDecipher.decipher();
         logger.info("QRCode decipher end");
         myApi.notifyGoingToGoal();
+        logger.info("Down movement start");
+        //The Bee runs into a lot of KOZ violations trying to move directly to the goal, so we're going to move it down a bit first
+        CraigMoveTo(new moveData(new Point(11.381944, -8.8, 5), myApi.getRobotKinematics().getOrientation()));
+        logger.info("Down movement end");
         //8 is the goal
         logger.info("Goal moveTo start");
         CraigMoveTo(8);
