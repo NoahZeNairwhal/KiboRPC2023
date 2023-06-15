@@ -48,6 +48,8 @@ public class ARDetector {
             return new moveData();
         }
 
+        //YourService.myApi.saveMatImage(image, "A Target Image");
+
         Aruco.detectMarkers(image, Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250), corners, ids);
 
         for(int i = 0; i < 4 && ids == null && corners != null && corners.size() == 0; i++) {
@@ -79,8 +81,8 @@ public class ARDetector {
                 double zAvg = 0.0;
 
                 for(int c = 0; c < marker.cols(); c++) {
-                    xAvg += marker.get(0, c)[1];
-                    zAvg += marker.get(0, c)[0];
+                    xAvg += marker.get(0, c)[0];
+                    zAvg += marker.get(0, c)[1];
                 }
 
                 xAvg /= 4.0;
@@ -89,6 +91,37 @@ public class ARDetector {
                 centers.add(new double[]{xAvg, zAvg});
 
                 YourService.logger.info("X center: " + centers.get(centers.size() - 1)[0] + ", Z center: " + centers.get(centers.size() - 1)[1]);
+            }
+        }
+
+        for(int r = 0; r < ids.rows(); r++) {
+            for(int c = 0; c < ids.cols(); c++) {
+                for(int i = 0; i < ids.get(r, c).length; i++) {
+                    YourService.logger.info("Ids--- Row: " + r + ", Column: " + c + ", Index: " + i + ", Value: " + ids.get(r, c)[i]);
+                }
+            }
+        }
+
+        double estimatedTargetX = 0.0;
+        double estimatedTargetZ = 0.0;
+
+        for(int r = 0; r < ids.rows(); r++) {
+            double[] arr = centers.get(r);
+            double pixelPerMetre = (corners.get(r).get(0, 0)[0] - corners.get(r).get(0, 2)[0] / (5 / 100.0) + corners.get(r).get(0, 0)[1] - corners.get(r).get(0, 2)[1] / (5 / 100.0)) / 2.0;
+
+            switch((int) ids.get(r, 0)[0] % 4) {
+                case 1:
+                    YourService.logger.info("ID: " + ids.get(r, 0)[0] + ", Estimated X: " + (arr[0] - pixelPerMetre * (10 / 100.0)) + ", Estimated Z: " + (arr[1] - pixelPerMetre * (3.75 / 100.0)));
+                    break;
+                case 2:
+                    YourService.logger.info("ID: " + ids.get(r, 0)[0] + ", Estimated X: " + (arr[0] + pixelPerMetre * (10 / 100.0)) + ", Estimated Z: " + (arr[1] - pixelPerMetre * (3.75 / 100.0)));
+                    break;
+                case 3:
+                    YourService.logger.info("ID: " + ids.get(r, 0)[0] + ", Estimated X: " + (arr[0] + pixelPerMetre * (10 / 100.0)) + ", Estimated Z: " + (arr[1] + pixelPerMetre * (3.75 / 100.0)));
+                    break;
+                case 0:
+                    YourService.logger.info("ID: " + ids.get(r, 0)[0] + ", Estimated X: " + (arr[0] - pixelPerMetre * (10 / 100.0)) + ", Estimated Z: " + (arr[1] + pixelPerMetre * (3.75 / 100.0)));
+                    break;
             }
         }
 
