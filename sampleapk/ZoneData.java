@@ -35,9 +35,10 @@ public class ZoneData {
     //Meant to take into account the size of Astrobee and the randomness of the environment to avoid hitting the edges of the KOZ while pathfinding
     public static final double AVOIDANCE = 0.28;
     //The initial number of x/y/z steps to use for calculating the next set of points (see Node.calcNext() within the intermediateData method)
-    public static final int XSTEPS = 20;
-    public static final int YSTEPS = 60;
-    public static final int ZSTEPS = 20;
+    //Still trying to figure out the values for these that allows it to pathfind from anywhere without getting a memory space error by like the 3rd loop
+    public static final int XSTEPS = 18;
+    public static final int YSTEPS = 80;
+    public static final int ZSTEPS = 18;
     //A preset array containing points (double arrays with a length of 3) that are used for pathfinding
     public static final double[][][][] MASTER_POINTS = masterPoints_init(XSTEPS, YSTEPS, ZSTEPS);
 
