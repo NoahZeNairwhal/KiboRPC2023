@@ -103,6 +103,9 @@ public class ZoneData {
                 parent = null;
                 myNext = new ArrayList<Node>();
                 data = toMoveData();
+                this.xBound = currBounds[0];
+                this.yBound = currBounds[1];
+                this.zBound = currBounds[2];
             }
 
             //Used for child Nodes, this Node will be a point in the MASTER_POINTS array
@@ -262,17 +265,14 @@ public class ZoneData {
                                     YourService.logger.debug("H");
                                     i--;
                                 }
+
+                                i++;
                             } else {
                                 while(i < masterList.size() && last.yBound == masterList.get(i).yBound) {
                                     YourService.logger.debug("I");
                                     i++;
                                 }
                             }
-                        }
-
-                        if(i == -1) {
-                            YourService.logger.debug("i was negative");
-                            i = 0;
                         }
 
                         masterList.add(i, temp);
