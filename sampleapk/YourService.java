@@ -63,7 +63,14 @@ public class YourService extends KiboRpcService {
         myApi.notifyGoingToGoal();
         logger.info("Down movement start");
         //The Bee runs into a lot of KOZ violations trying to move directly to the goal, so we're going to move it down a bit first
-        CraigMoveTo(new moveData(new Point(11.381944, -8.8, 5), myApi.getRobotKinematics().getOrientation()));
+        int num = 0;
+        boolean succeed = false;
+
+        while(num < 3 && !succeed) {
+            succeed = myApi.moveTo(new Point(11.381944, -8.8, 5), myApi.getRobotKinematics().getOrientation(), true).hasSucceeded();
+            num++;
+        }
+
         logger.info("Down movement end");
         //8 is the goal
         logger.info("Goal moveTo start");
@@ -91,24 +98,25 @@ public class YourService extends KiboRpcService {
     }
 
     public static void CraigMoveTo(int targetNum, int tries) {
-        //Gets the list of points to go to
-        List<moveData> dataPoints = ZoneData.intermediateData(TargetData.updated[targetNum - 1]);
-        //Adds the endpoint (otherwise it wouldn't go to the point it's supposed to)
-        dataPoints.add(TargetData.updated[targetNum - 1]);
+        for(int j = 0; j < tries && !TargetData.updated[targetNum - 1].equals(myApi.getRobotKinematics()); j++) {
+            //Gets the list of points to go to
+            List<moveData> dataPoints = ZoneData.intermediateData(TargetData.updated[targetNum - 1]);
+            //Adds the endpoint (otherwise it wouldn't go to the point it's supposed to)
+            dataPoints.add(TargetData.updated[targetNum - 1]);
 
-        for(moveData dataPoint: dataPoints) {
-            int i = 0;
-            boolean succeed = false;
+            for (int i = 0; i < dataPoints.size(); i++) {
+                int counter = 0;
+                boolean succeeded = false;
 
-            //i < tries prevents an infinite loop
-            while(!succeed && i < tries) {
-                if(myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
-                    moveToGoal = true;
-                    return;
+                while (!succeeded && counter < tries) {
+                    if (myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
+                        moveToGoal = true;
+                        return;
+                    }
+
+                    succeeded = myApi.moveTo(dataPoints.get(i).point, dataPoints.get(i).quaternion, dataPoints.get(i).print).hasSucceeded();
+                    counter++;
                 }
-
-                succeed = myApi.moveTo(dataPoint.point, dataPoint.quaternion, dataPoint.print).hasSucceeded();
-                i++;
             }
         }
 
@@ -121,13 +129,16 @@ public class YourService extends KiboRpcService {
 
     //Same as above method but with a specific moveData
     public static void CraigMoveTo(moveData endData, int tries) {
+        //Gets the list of points to go to
         List<moveData> dataPoints = ZoneData.intermediateData(endData);
+        //Adds the endpoint (otherwise it wouldn't go to the point it's supposed to)
         dataPoints.add(endData);
 
         for(moveData dataPoint: dataPoints) {
             int i = 0;
             boolean succeed = false;
 
+            //i < tries prevents an infinite loop
             while(!succeed && i < tries) {
                 if(myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
                     moveToGoal = true;
