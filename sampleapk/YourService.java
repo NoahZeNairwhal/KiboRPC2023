@@ -30,6 +30,8 @@ public class YourService extends KiboRpcService {
 
             //For each active target
             for(Integer i: active) {
+                logger.info("I should be going to Target #" + i);
+                
                 CraigMoveTo(i);
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
