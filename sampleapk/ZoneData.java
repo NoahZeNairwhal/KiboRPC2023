@@ -36,9 +36,9 @@ public class ZoneData {
     public static final double AVOIDANCE = 0.28;
     //The initial number of x/y/z steps to use for calculating the next set of points (see Node.calcNext() within the intermediateData method)
     //Still trying to figure out the values for these that allows it to pathfind from anywhere without getting a memory space error by like the 3rd loop
-    public static final int XSTEPS = 18;
-    public static final int YSTEPS = 80;
-    public static final int ZSTEPS = 18;
+    public static final int XSTEPS = 21;
+    public static final int YSTEPS = 72;
+    public static final int ZSTEPS = 21;
     //A preset array containing points (double arrays with a length of 3) that are used for pathfinding
     public static final double[][][][] MASTER_POINTS = masterPoints_init(XSTEPS, YSTEPS, ZSTEPS);
 
@@ -122,7 +122,7 @@ public class ZoneData {
 
             //Calculates the List of next Nodes for this Node
             void calcNext(boolean first) {
-                YourService.logger.info("Node calc next start");
+                //YourService.logger.info("Node calc next start");
                 //Used to determine whether the r, c, d values of the MASTER_POINTS array traversal should increase or decrease
                 boolean lessX = points[0] <= endData.point.getX();
                 boolean lessY = points[1] <= endData.point.getY();
@@ -175,7 +175,7 @@ public class ZoneData {
                     }
                 }
 
-                YourService.logger.info("Node calc next end");
+                //YourService.logger.info("Node calc next end");
             }
 
             //moveData representation of the Node utilizing endData's quaternion
@@ -209,6 +209,15 @@ public class ZoneData {
                         aNode.calcNext(true);
                     } else {
                         aNode.calcNext(false);
+                    }
+
+                    for(int i = 0; i < aNode.myNext.size(); i++) {
+                        int size = aNode.myNext.size();
+                        cleanUp(aNode.myNext.get(i));
+
+                        if(size != aNode.myNext.size()) {
+                            i--;
+                        }
                     }
 
                     newLow.addAll(aNode.myNext);
@@ -283,54 +292,54 @@ public class ZoneData {
             }
 
             //If two Nodes are the same point, it will remove the one with the greater distance
-            void cleanUp() {
+            void cleanUp(Node aNode) {
                 YourService.logger.info("Clean up start");
-                for(int i = 0; i < masterList.size(); i++) {
-                    Node iNode = masterList.get(i);
-                    int relative = 0;
-                    Node last = null;
-                    int high = masterList.size() - 1, low = 0;
+                YourService.logger.info("Master List size before clean up--- " + masterList.size());
 
-                    //Uses binary search to find a Node with the same yBound
-                    for(relative = (high + low) / 2; relative >= 0 && relative < masterList.size() && last != masterList.get(relative); relative = (high + low) / 2) {
-                        if(masterList.get(relative).yBound == iNode.yBound) {
-                            break;
-                        } else if(masterList.get(relative).yBound > iNode.yBound) {
-                            high = i;
-                        } else {
-                            low = i;
-                        }
+                Node iNode = aNode;
+                Node last = null;
+                int high = masterList.size() - 1, low = 0;
+                int relative = (high + low) / 2;
 
-                        last = masterList.get(relative);
+                //Uses binary search to find a Node with the same yBound
+                for(relative = (high + low) / 2; relative >= 0 && relative < masterList.size() && last != masterList.get(relative); relative = (high + low) / 2) {
+                    if(masterList.get(relative).yBound == iNode.yBound) {
+                        break;
+                    } else if(masterList.get(relative).yBound > iNode.yBound) {
+                        high = relative;
+                    } else {
+                        low = relative;
                     }
 
-                    //For every Node past this relative point that also has the same yBound
-                    for(int j = relative; j < masterList.size() && masterList.get(j).yBound == iNode.yBound; j++) {
-                        Node jNode = masterList.get(j);
+                    last = masterList.get(relative);
+                }
 
-                        //If the Nodes are equal (same point), and i has a lesser total distance than j, then remove j
-                        if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
-                            if(iNode.totDistance <= jNode.totDistance) {
-                                masterList.remove(jNode);
-                                lowest.remove(jNode);
-                                jNode.parent.myNext.remove(jNode);
-                                jNode.parent = null;
-                                j--;
-                            }
+                //For every Node past this relative point that also has the same yBound
+                for(int j = relative; j < masterList.size() && masterList.get(j).yBound == iNode.yBound; j++) {
+                    Node jNode = masterList.get(j);
+
+                    //If the Nodes are equal (same point), and i has a lesser total distance than j, then remove j
+                    if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
+                        if(iNode.totDistance <= jNode.totDistance) {
+                            masterList.remove(jNode);
+                            lowest.remove(jNode);
+                            jNode.parent.myNext.remove(jNode);
+                            jNode.parent = null;
+                            j--;
                         }
                     }
+                }
 
-                    //Same as above loop but decreasing j
-                    for(int j = relative; j >= 0 && masterList.get(j).yBound == iNode.yBound; j--) {
-                        Node jNode = masterList.get(j);
+                //Same as above loop but decreasing j
+                for(int j = relative; j >= 0 && masterList.get(j).yBound == iNode.yBound; j--) {
+                    Node jNode = masterList.get(j);
 
-                        if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
-                            if(iNode.totDistance <= jNode.totDistance) {
-                                masterList.remove(jNode);
-                                lowest.remove(jNode);
-                                jNode.parent.myNext.remove(jNode);
-                                jNode.parent = null;
-                            }
+                    if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
+                        if(iNode.totDistance <= jNode.totDistance) {
+                            masterList.remove(jNode);
+                            lowest.remove(jNode);
+                            jNode.parent.myNext.remove(jNode);
+                            jNode.parent = null;
                         }
                     }
                 }
@@ -339,6 +348,7 @@ public class ZoneData {
                 System.gc();
                 System.runFinalization();
 
+                YourService.logger.info("Master List size after clean up--- " + masterList.size());
                 YourService.logger.info("Clean up end");
             }
 
@@ -401,8 +411,6 @@ public class ZoneData {
             YourService.logger.info("Use this loop active");
             //Calculate another level
             wow.calcNext();
-            //Remove unneccesary Nodes
-            wow.cleanUp();
             //At some point best should return something other than null
             useThis = wow.best();
 
