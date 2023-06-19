@@ -25,6 +25,7 @@ public class ARDetector {
         image = new Mat();
         ids = new Mat();
         corners = new ArrayList<Mat>();
+
         image = YourService.myApi.getMatNavCam();
 
         for(int i = 0; i < 4 && image == null; i++) {
@@ -124,6 +125,18 @@ public class ARDetector {
                     break;
             }
         }
+
+        image.release();
+        ids.release();
+        for(Mat a: corners) {
+            a.release();
+        }
+        image = null;
+        ids = null;
+        corners = null;
+
+        System.gc();
+        System.runFinalization();
 
         return new moveData();
     }
