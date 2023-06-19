@@ -36,20 +36,19 @@ public class ZoneData {
     public static final double AVOIDANCE = 0.28;
     //The initial number of x/y/z steps to use for calculating the next set of points (see Node.calcNext() within the intermediateData method)
     public static final int XSTEPS = 20;
-    public static final int YSTEPS = 40;
+    public static final int YSTEPS = 60;
     public static final int ZSTEPS = 20;
     //A preset array containing points (double arrays with a length of 3) that are used for pathfinding
     public static final double[][][][] MASTER_POINTS = masterPoints_init(XSTEPS, YSTEPS, ZSTEPS);
 
     //Initializes the MASTER_POINTS array using the x/y/z steps
     private static double[][][][] masterPoints_init(int xSteps, int ySteps, int zSteps) {
-        //YourService.logger.info("Master points initialization start");
+        YourService.logger.info("Master points initialization start");
         double[][][][] output = new double[xSteps][ySteps][zSteps][3];
 
         for(int r = 0; r < output.length; r++) {
             for(int c = 0; c < output[0].length; c++) {
                 for(int d = 0; d < output[0][0].length; d++) {
-                    YourService.logger.info("AF");
                     output[r][c][d][0] = (inXMin + AVOIDANCE) + (((inXMax - AVOIDANCE) - (inXMin + AVOIDANCE)) / (xSteps - 1)) * r;
                     output[r][c][d][1] = (inYMin + AVOIDANCE) + (((inYMax - AVOIDANCE) - (inYMin + AVOIDANCE)) / (ySteps - 1)) * c;
                     output[r][c][d][2] = (inZMin + AVOIDANCE) + (((inZMax - AVOIDANCE) - (inZMin + AVOIDANCE)) / (zSteps - 1)) * d;
@@ -57,7 +56,7 @@ public class ZoneData {
             }
         }
 
-        //YourService.logger.info("Master points initialization end");
+        YourService.logger.info("Master points initialization end");
 
         return output;
     }
@@ -122,6 +121,7 @@ public class ZoneData {
 
             //Calculates the List of next Nodes for this Node
             void calcNext(boolean first) {
+                YourService.logger.info("Node calc next start");
                 //Used to determine whether the r, c, d values of the MASTER_POINTS array traversal should increase or decrease
                 boolean lessX = points[0] <= endData.point.getX();
                 boolean lessY = points[1] <= endData.point.getY();
@@ -132,14 +132,12 @@ public class ZoneData {
                     for(int r = 0; r < MASTER_POINTS.length; r++) {
                         for(int c = currBounds[1]; lessY ? c <= endBounds[1] : c >= endBounds[1]; c += lessY ? 1 : -1) {
                             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
-                                YourService.logger.info("A");
                                 boolean crosses = false;
                                 //The zones between the current point and the possible next point
                                 List<Integer> possibleZones = couldCross(MASTER_POINTS[r][c][d][1], data);
 
                                 //If from the current Node to the possible new point it ends up touching a KOZ, then we can discard the new point
                                 for(int i: possibleZones) {
-                                    YourService.logger.info("B");
                                     if(touchesZone(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], i, data)) {
                                         crosses = true;
                                         break;
@@ -158,12 +156,10 @@ public class ZoneData {
                     for(int r = xBound; lessX ? r <= endBounds[0] : r >= endBounds[0]; r += lessX ? 1 : -1) {
                         for(int c = yBound; lessY ? c <= endBounds[1] : c >= endBounds[1]; c += lessY ? 1 : -1) {
                             for(int d = zBound; lessZ ? d <= endBounds[2] : d >= endBounds[2]; d += lessZ ? 1 : -1) {
-                                YourService.logger.info("C");
                                 boolean crosses = false;
                                 List<Integer> possibleZones = couldCross(MASTER_POINTS[r][c][d][1], data);
 
                                 for(int i: possibleZones) {
-                                    YourService.logger.info("D");
                                     if(touchesZone(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], i, data)) {
                                         crosses = true;
                                         break;
@@ -177,6 +173,8 @@ public class ZoneData {
                         }
                     }
                 }
+
+                YourService.logger.info("Node calc next end");
             }
 
             //moveData representation of the Node utilizing endData's quaternion
@@ -201,11 +199,11 @@ public class ZoneData {
 
             //Calculates the next Nodes for every Node in lowest, and then updates lowest to be these new Nodes
             void calcNext() {
+                YourService.logger.info("Tree calc next start");
                 //The next list of lowest Nodes
                 List<Node> newLow = new ArrayList<Node>();
 
                 for(Node aNode: lowest) {
-                    YourService.logger.info("E");
                     if(aNode.equals(head)) {
                         aNode.calcNext(true);
                     } else {
@@ -216,7 +214,6 @@ public class ZoneData {
 
                     //Basically a binary insertion algorithm to maintain order in relation to the yBounds in the masterList
                     for(Node temp: aNode.myNext) {
-                        YourService.logger.info("F");
                         int newLowAddIndex = 0, masterListAddIndex = 0;
                         Node last = null;
                         int high = masterList.size() - 1, low = 0;
@@ -246,7 +243,6 @@ public class ZoneData {
                         newLow.add(i, temp);*/
 
                         for(i = (high + low) / 2; i >= 0 && i < masterList.size() && last != masterList.get(i); i = (high + low) / 2) {
-                            YourService.logger.info("G");
                             if(masterList.get(i).yBound == temp.yBound) {
                                 masterListAddIndex = i;
                                 break;
@@ -262,14 +258,12 @@ public class ZoneData {
                         if(masterList.get(i) == last) {
                             if(masterList.get(i).yBound > temp.yBound) {
                                 while(i >= 0 && last.yBound == masterList.get(i).yBound) {
-                                    YourService.logger.info("H");
                                     i--;
                                 }
 
                                 i++;
                             } else {
                                 while(i < masterList.size() && last.yBound == masterList.get(i).yBound) {
-                                    YourService.logger.info("I");
                                     i++;
                                 }
                             }
@@ -283,10 +277,13 @@ public class ZoneData {
 
                 /*System.gc();
                 System.runFinalization();*/
+
+                YourService.logger.info("Tree calc next end");
             }
 
             //If two Nodes are the same point, it will remove the one with the greater distance
             void cleanUp() {
+                YourService.logger.info("Clean up start");
                 for(int i = 0; i < masterList.size(); i++) {
                     Node iNode = masterList.get(i);
                     int relative = 0;
@@ -295,7 +292,6 @@ public class ZoneData {
 
                     //Uses binary search to find a Node with the same yBound
                     for(relative = (high + low) / 2; relative >= 0 && relative < masterList.size() && last != masterList.get(relative); relative = (high + low) / 2) {
-                        YourService.logger.info("J");
                         if(masterList.get(relative).yBound == iNode.yBound) {
                             break;
                         } else if(masterList.get(relative).yBound > iNode.yBound) {
@@ -309,7 +305,6 @@ public class ZoneData {
 
                     //For every Node past this relative point that also has the same yBound
                     for(int j = relative; j < masterList.size() && masterList.get(j).yBound == iNode.yBound; j++) {
-                        YourService.logger.info("K");
                         Node jNode = masterList.get(j);
 
                         //If the Nodes are equal (same point), and i has a lesser total distance than j, then remove j
@@ -326,7 +321,6 @@ public class ZoneData {
 
                     //Same as above loop but decreasing j
                     for(int j = relative; j >= 0 && masterList.get(j).yBound == iNode.yBound; j--) {
-                        YourService.logger.info("L");
                         Node jNode = masterList.get(j);
 
                         if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
@@ -343,20 +337,21 @@ public class ZoneData {
                 //Explicitly clean up anything that got cleaned up
                 System.gc();
                 System.runFinalization();
+
+                YourService.logger.info("Clean up end");
             }
 
             //Returns the Node with the lowest distance that can get from where it is to the end point without crossing a KOZ. If no Node works, it returns null
             Node best() {
+                YourService.logger.info("Find best Node start");
                 Node best = null;
                 double leastDistance = Double.MAX_VALUE;
 
                 for(Node low: lowest) {
-                    YourService.logger.info("M");
                     boolean crosses = false;
                     List<Integer> possibleZones = couldCross(low.points[1], endData);
 
                     for(int i: possibleZones) {
-                        YourService.logger.info("N");
                         if(touchesZone(low.points[0], low.points[1], low.points[2], i, endData)) {
                             crosses = true;
                             break;
@@ -373,13 +368,16 @@ public class ZoneData {
                     }
                 }
 
+                YourService.logger.info("Find best Node end");
+
                 return best;
             }
 
             //For explicit garbage collection
             void nullify() {
+                YourService.logger.info("Nullify start");
+
                 for(Node aNode: masterList) {
-                    YourService.logger.info("O");
                     aNode.parent = null;
                     aNode.myNext = null;
                     aNode.data = null;
@@ -388,6 +386,8 @@ public class ZoneData {
                 masterList = null;
                 lowest = null;
                 head = null;
+
+                YourService.logger.info("Nullify end");
             }
         }
 
@@ -397,8 +397,7 @@ public class ZoneData {
 
         //While there are no Nodes that can get to the end point
         while(useThis == null) {
-            YourService.logger.info("P");
-            //YourService.logger.info("Use this loop active");
+            YourService.logger.info("Use this loop active");
             //Calculate another level
             wow.calcNext();
             //Remove unneccesary Nodes
@@ -419,7 +418,6 @@ public class ZoneData {
         //Constructs the output List "backwards" by using the Node that worked and including every Node except for the head Node, since the head is the current position
         //Note this also excludes the end point
         for(Node temp = useThis; temp.parent != null; temp = temp.parent) {
-            YourService.logger.info("Q");
             output.add(0, temp.data);
         }
 
@@ -445,7 +443,6 @@ public class ZoneData {
 
         if(lessX) {
             for(int r = 0; r < MASTER_POINTS.length; r++) {
-                YourService.logger.info("R");
                 if(MASTER_POINTS[r][0][0][0] >= end.point.getX()) {
                     endArr[0] = r;
                     break;
@@ -453,7 +450,6 @@ public class ZoneData {
             }
 
             for(int r = MASTER_POINTS.length - 1; r >= 0; r--) {
-                YourService.logger.info("S");
                 if(MASTER_POINTS[r][0][0][0] <= current.point.getX()) {
                     currentArr[0] = r;
                     break;
@@ -461,7 +457,6 @@ public class ZoneData {
             }
         } else {
             for(int r = 0; r < MASTER_POINTS.length; r++) {
-                YourService.logger.info("T");
                 if(MASTER_POINTS[r][0][0][0] >= current.point.getX()) {
                     currentArr[0] = r;
                     break;
@@ -469,7 +464,6 @@ public class ZoneData {
             }
 
             for(int r = MASTER_POINTS.length - 1; r >= 0; r--) {
-                YourService.logger.info("U");
                 if(MASTER_POINTS[r][0][0][0] <= end.point.getX()) {
                     endArr[0] = r;
                     break;
@@ -479,7 +473,6 @@ public class ZoneData {
 
         if(lessY) {
             for(int c = 0; c < MASTER_POINTS[0].length; c++) {
-                YourService.logger.info("V");
                 if(MASTER_POINTS[0][c][0][1] >= end.point.getY()) {
                     endArr[1] = c;
                     break;
@@ -487,7 +480,6 @@ public class ZoneData {
             }
 
             for(int c = MASTER_POINTS[0].length - 1; c >= 0; c--) {
-                YourService.logger.info("W");
                 if(MASTER_POINTS[0][c][0][1] <= current.point.getY()) {
                     currentArr[1] = c;
                     break;
@@ -495,7 +487,6 @@ public class ZoneData {
             }
         } else {
             for(int c = 0; c < MASTER_POINTS[0].length; c++) {
-                YourService.logger.info("X");
                 if(MASTER_POINTS[0][c][0][1] >= current.point.getY()) {
                     currentArr[1] = c;
                     break;
@@ -503,7 +494,6 @@ public class ZoneData {
             }
 
             for(int c = MASTER_POINTS[0].length - 1; c >= 0; c--) {
-                YourService.logger.info("Y");
                 if(MASTER_POINTS[0][c][0][1] <= end.point.getY()) {
                     endArr[1] = c;
                     break;
@@ -513,7 +503,6 @@ public class ZoneData {
 
         if(lessZ) {
             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
-                YourService.logger.info("Z");
                 if(MASTER_POINTS[0][0][d][2] >= end.point.getZ()) {
                     endArr[2] = d;
                     break;
@@ -521,7 +510,6 @@ public class ZoneData {
             }
 
             for(int d = MASTER_POINTS[0][0].length - 1; d >= 0; d--) {
-                YourService.logger.info("AA");
                 if(MASTER_POINTS[0][0][d][2] <= current.point.getZ()) {
                     currentArr[2] = d;
                     break;
@@ -529,7 +517,6 @@ public class ZoneData {
             }
         } else {
             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
-                YourService.logger.info("AB");
                 if(MASTER_POINTS[0][0][d][2] >= current.point.getZ()) {
                     currentArr[2] = d;
                     break;
@@ -537,7 +524,6 @@ public class ZoneData {
             }
 
             for(int d = MASTER_POINTS[0][0].length - 1; d >= 0; d--) {
-                YourService.logger.info("AC");
                 if(MASTER_POINTS[0][0][d][2] <= end.point.getZ()) {
                     endArr[2] = d;
                     break;
@@ -562,14 +548,12 @@ public class ZoneData {
 
         if(y >= current.point.getY()) {
             for(int i = 0; i < outYMin.length; i++) {
-                YourService.logger.info("AD");
                 if(outYMax[i] >= current.point.getY() && outYMin[i] <= y) {
                     output.add(i);
                 }
             }
         } else {
             for(int i = 0; i < outYMax.length; i++) {
-                YourService.logger.info("AE");
                 if(outYMin[i] <= current.point.getY() && outYMax[i] >= y) {
                     output.add(i);
                 }
