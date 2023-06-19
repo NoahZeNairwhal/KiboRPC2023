@@ -216,8 +216,8 @@ public class ZoneData {
                         YourService.logger.debug("F");
                         int newLowAddIndex = 0, masterListAddIndex = 0;
                         Node last = null;
-                        int i = -1;
                         int high = masterList.size() - 1, low = 0;
+                        int i = (high + low) / 2;
 
                         /*for(i = newLow.size() / 2; i >= 0 && i < newLow.size() && last != newLow.get(i); i = temp.yBound < newLow.get(i).yBound ? i + ((newLow.size() - i) / 2) : i / 2) {
                             if(newLow.get(i).yBound == temp.yBound) {
@@ -253,7 +253,7 @@ public class ZoneData {
                                 low = i;
                             }
 
-                            last = newLow.get(i);
+                            last = masterList.get(i);
                         }
 
                         if(masterList.get(i) == last) {
@@ -268,6 +268,11 @@ public class ZoneData {
                                     i++;
                                 }
                             }
+                        }
+
+                        if(i == -1) {
+                            YourService.logger.debug("i was negative");
+                            i = 0;
                         }
 
                         masterList.add(i, temp);
