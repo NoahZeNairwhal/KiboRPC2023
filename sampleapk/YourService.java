@@ -24,6 +24,12 @@ public class YourService extends KiboRpcService {
         myApi = api;
         myApi.startMission();
 
+        /*boolean a = false;
+
+        for(int i = 0; i < 3 && !a; i++) {
+            myApi.moveTo(new Point(10.59, -9.815, 4.7), myApi.getRobotKinematics().getOrientation(), true);
+        }*/
+
         //While more than a minute total time remains
         while(!moveToGoal) {
             List<Integer> active = myApi.getActiveTargets();
@@ -31,7 +37,7 @@ public class YourService extends KiboRpcService {
             //For each active target
             for(Integer i: active) {
                 logger.info("I should be going to Target #" + i);
-                
+
                 CraigMoveTo(i);
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
