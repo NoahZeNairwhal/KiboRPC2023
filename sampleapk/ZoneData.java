@@ -36,9 +36,9 @@ public class ZoneData {
     public static final double AVOIDANCE = 0.28;
     //The initial number of x/y/z steps to use for calculating the next set of points (see Node.calcNext() within the intermediateData method)
     //Still trying to figure out the values for these that allows it to pathfind from anywhere without getting a memory space error by like the 3rd loop
-    public static final int XSTEPS = 21;
-    public static final int YSTEPS = 72;
-    public static final int ZSTEPS = 21;
+    public static final int XSTEPS = 14;
+    public static final int YSTEPS = 36;
+    public static final int ZSTEPS = 14;
     //A preset array containing points (double arrays with a length of 3) that are used for pathfinding
     public static final double[][][][] MASTER_POINTS = masterPoints_init(XSTEPS, YSTEPS, ZSTEPS);
 
@@ -77,7 +77,11 @@ public class ZoneData {
         int[][] name = indexWithMove(currentData, endData);
         //Needs to be final so Node and tree can access them
         final int[] currBounds = name[0];
+        YourService.logger.info("Current points--- {" + currentData.point.getX() + ", " + currentData.point.getY() + ", " + currentData.point.getZ() + "}");
+        YourService.logger.info("Current Bounds--- {" + currBounds[0] + ", " + currBounds[1] + ", " + currBounds[2] + "}");
         final int[] endBounds = name[1];
+        YourService.logger.info("End points--- {" + endData.point.getX() + ", " + endData.point.getY() + ", " + endData.point.getZ() + "}");
+        YourService.logger.info("End Bounds--- {" + endBounds[0] + ", " + endBounds[1] + ", " + endBounds[2] + "}");
 
         //A Node class for the Tree
         class Node {
@@ -124,14 +128,14 @@ public class ZoneData {
             void calcNext(boolean first) {
                 //YourService.logger.info("Node calc next start");
                 //Used to determine whether the r, c, d values of the MASTER_POINTS array traversal should increase or decrease
-                boolean lessX = points[0] <= endData.point.getX();
-                boolean lessY = points[1] <= endData.point.getY();
-                boolean lessZ = points[2] <= endData.point.getZ();
+                boolean lessX = xBound <= endBounds[0];
+                boolean lessY = yBound <= endBounds[1];
+                boolean lessZ = zBound <= endBounds[2];
 
                 //Since the head Node won't have an x/y/z bound, it needs a separate case
                 if(first) {
                     for(int r = 0; r < MASTER_POINTS.length; r++) {
-                        for(int c = currBounds[1]; lessY ? c <= endBounds[1] : c >= endBounds[1]; c += lessY ? 1 : -1) {
+                        for(int c = yBound; lessY ? c <= endBounds[1] : c >= endBounds[1]; c += lessY ? 1 : -1) {
                             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
                                 boolean crosses = false;
                                 //The zones between the current point and the possible next point
@@ -201,30 +205,30 @@ public class ZoneData {
             //Calculates the next Nodes for every Node in lowest, and then updates lowest to be these new Nodes
             void calcNext() {
                 YourService.logger.info("Tree calc next start");
+                YourService.logger.info("lowest size before: " + lowest.size());
+                YourService.logger.info("masterList size before: " + masterList.size());
+
                 //The next list of lowest Nodes
                 List<Node> newLow = new ArrayList<Node>();
 
-                for(Node aNode: lowest) {
+                for(int k = 0; k < lowest.size(); k++) {
+                    Node aNode = lowest.get(k);
+
                     if(aNode.equals(head)) {
                         aNode.calcNext(true);
                     } else {
-                        aNode.calcNext(false);
+                        aNode.calcNext(true);
                     }
 
                     for(int i = 0; i < aNode.myNext.size(); i++) {
                         int size = aNode.myNext.size();
-                        cleanUp(aNode.myNext.get(i));
-
-                        if(size != aNode.myNext.size()) {
-                            i--;
-                        }
+                        cleanUp(aNode.myNext.get(i), newLow);
                     }
 
                     newLow.addAll(aNode.myNext);
 
                     //Basically a binary insertion algorithm to maintain order in relation to the yBounds in the masterList
                     for(Node temp: aNode.myNext) {
-                        int newLowAddIndex = 0, masterListAddIndex = 0;
                         Node last = null;
                         int high = masterList.size() - 1, low = 0;
                         int i = (high + low) / 2;
@@ -253,10 +257,7 @@ public class ZoneData {
                         newLow.add(i, temp);*/
 
                         for(i = (high + low) / 2; i >= 0 && i < masterList.size() && last != masterList.get(i); i = (high + low) / 2) {
-                            if(masterList.get(i).yBound == temp.yBound) {
-                                masterListAddIndex = i;
-                                break;
-                            } else if(masterList.get(i).yBound > temp.yBound) {
+                            if(masterList.get(i).yBound > temp.yBound) {
                                 high = i;
                             } else {
                                 low = i;
@@ -280,6 +281,14 @@ public class ZoneData {
                         }
 
                         masterList.add(i, temp);
+
+                        if(!lowest.contains(aNode)) {
+                            k--;
+                        } else {
+                            while(lowest.get(k) != aNode) {
+                                k--;
+                            }
+                        }
                     }
                 }
 
@@ -288,13 +297,15 @@ public class ZoneData {
                 /*System.gc();
                 System.runFinalization();*/
 
+                YourService.logger.info("lowest size after: " + lowest.size());
+                YourService.logger.info("masterList size after: " + masterList.size());
                 YourService.logger.info("Tree calc next end");
             }
 
             //If two Nodes are the same point, it will remove the one with the greater distance
-            void cleanUp(Node aNode) {
-                YourService.logger.info("Clean up start");
-                YourService.logger.info("Master List size before clean up--- " + masterList.size());
+            void cleanUp(Node aNode, List<Node> newLow) {
+                //YourService.logger.info("Clean up start");
+                //YourService.logger.info("Master List size before clean up--- " + masterList.size());
 
                 Node iNode = aNode;
                 Node last = null;
@@ -321,11 +332,23 @@ public class ZoneData {
                     //If the Nodes are equal (same point), and i has a lesser total distance than j, then remove j
                     if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
                         if(iNode.totDistance <= jNode.totDistance) {
+                            if(j == relative) {
+                                relative--;
+                            }
+
                             masterList.remove(jNode);
+                            newLow.remove(jNode);
                             lowest.remove(jNode);
                             jNode.parent.myNext.remove(jNode);
                             jNode.parent = null;
                             j--;
+                        } else {
+                            masterList.remove(iNode);
+                            newLow.remove(iNode);
+                            lowest.remove(iNode);
+                            iNode.parent.myNext.remove(iNode);
+                            iNode.parent = null;
+                            return;
                         }
                     }
                 }
@@ -337,19 +360,23 @@ public class ZoneData {
                     if(iNode != jNode && iNode.xBound == jNode.xBound && iNode.yBound == jNode.yBound && iNode.zBound == jNode.zBound) {
                         if(iNode.totDistance <= jNode.totDistance) {
                             masterList.remove(jNode);
+                            newLow.remove(jNode);
                             lowest.remove(jNode);
                             jNode.parent.myNext.remove(jNode);
                             jNode.parent = null;
+                        } else {
+                            masterList.remove(iNode);
+                            newLow.remove(iNode);
+                            lowest.remove(iNode);
+                            iNode.parent.myNext.remove(iNode);
+                            iNode.parent = null;
+                            return;
                         }
                     }
                 }
 
-                //Explicitly clean up anything that got cleaned up
-                System.gc();
-                System.runFinalization();
-
-                YourService.logger.info("Master List size after clean up--- " + masterList.size());
-                YourService.logger.info("Clean up end");
+                //YourService.logger.info("Master List size after clean up--- " + masterList.size());
+                //YourService.logger.info("Clean up end");
             }
 
             //Returns the Node with the lowest distance that can get from where it is to the end point without crossing a KOZ. If no Node works, it returns null
