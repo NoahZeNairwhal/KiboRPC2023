@@ -282,12 +282,13 @@ public class ZoneData {
 
                         masterList.add(i, temp);
 
-                        if(!lowest.contains(aNode)) {
+                    }
+
+                    if(!lowest.contains(aNode)) {
+                        k--;
+                    } else {
+                        while(lowest.get(k) != aNode) {
                             k--;
-                        } else {
-                            while(lowest.get(k) != aNode) {
-                                k--;
-                            }
                         }
                     }
                 }
