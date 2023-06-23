@@ -50,23 +50,25 @@ public class YourService extends KiboRpcService {
 
                 CraigMoveTo(i);
 
+                logger.info("I should be at Target #" + i);
+
+                if(TargetData.updated[i - 1].equals(myApi.getRobotKinematics())) {
+                    //Activate laser
+                    myApi.laserControl(true);
+                    try {
+                        Thread.sleep(1000);
+                    } catch(InterruptedException e) {
+                        logger.error("Error with laser sleep");
+                    }
+                    //Screenshot target, automatically deactivates laser
+                    myApi.takeTargetSnapshot(i);
+                }
+
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 105000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
                     moveToGoal = true;
                     break;
                 }
-
-                logger.info("I should be at Target #" + i);
-
-                //Activate laser
-                myApi.laserControl(true);
-                try {
-                    Thread.sleep(1000);
-                } catch(InterruptedException e) {
-                    logger.error("Error with laser sleep");
-                }
-                //Screenshot target, automatically deactivates laser
-                myApi.takeTargetSnapshot(i);
             }
         }
 
@@ -116,8 +118,8 @@ public class YourService extends KiboRpcService {
     }*/
 
     public static void CraigMoveTo(int targetNum, int tries) {
-        for(int j = 0; j < tries && !TargetData.updated[targetNum - 1].equals(myApi.getRobotKinematics()); j++) {
-            ZoneData.AVOIDANCE = 0.075 + 0.025 * j;
+        for(int j = 0; j <= 10 && !TargetData.updated[targetNum - 1].equals(myApi.getRobotKinematics()); j++) {
+            ZoneData.AVOIDANCE = 0.15 - 0.015 * j;
             //Gets the list of points to go to
             List<moveData> dataPoints = ZoneData.intermediateData(TargetData.updated[targetNum - 1]);
             //Adds the endpoint (otherwise it wouldn't go to the point it's supposed to)
@@ -128,13 +130,13 @@ public class YourService extends KiboRpcService {
                 boolean succeeded = false;
 
                 while (!succeeded && counter < tries) {
-                    if (myApi.getTimeRemaining().get(1) <= 105000 && !bypass) {
-                        moveToGoal = true;
-                        return;
-                    }
-
                     succeeded = myApi.moveTo(dataPoints.get(i).point, dataPoints.get(i).quaternion, dataPoints.get(i).print).hasSucceeded();
                     counter++;
+                }
+
+                if (myApi.getTimeRemaining().get(1) <= 120000 && !bypass) {
+                    moveToGoal = true;
+                    return;
                 }
             }
         }
