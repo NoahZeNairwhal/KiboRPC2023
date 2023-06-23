@@ -16,7 +16,7 @@ public class QRDecipher {
     //Use if looking at qr code and you want to decipher it
     public static void decipher() {
         image = null;
-        //Stores what navCam sees in the Mat image (navCam needs to be seeing the qrCode)
+        //Stores what navCam sees in the Mat image (dockCam needs to be seeing the qrCode)
         image = YourService.myApi.getMatDockCam();
 
         for(int i = 0; i < 4 && image == null; i++) {
