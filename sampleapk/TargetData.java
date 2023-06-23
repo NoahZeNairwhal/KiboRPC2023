@@ -12,7 +12,8 @@ public class TargetData {
     //All the moveData representations of the intial values of the targets and whatnot
     public static moveData[] initialize() {
         return new moveData[]{new moveData(new Point(11.2746, -9.92284, 5.2988), new Quaternion(0f, 0f, -0.707f, 0.707f)),
-                new moveData(new Point(10.612, -9.0709, 4.48), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f)),
+                /*new moveData(new Point(10.612, -9.0709, 4.48), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f)),*/
+                new moveData(new Point(10.513384 + 0.1302, -9.085172 - 0.0572, 4.5), new Quaternion(0f, 0.707f, 0f, -0.707f)),
                 new moveData(new Point(10.71 + 0.003, -7.7 + 0.071, 4.48), new Quaternion(0f, 0.707f, 0f, 0.707f)),
                 new moveData(new Point(10.51, -6.7185 + 0.106, 5.1804 + 0.025), new Quaternion(0f, 0f, -1f, 0f)),
                 new moveData(new Point(11.114 - 0.068, -7.9756 + 0.059, 5.3393), new Quaternion(-0.5f, -0.5f, -0.5f, 0.5f)),
