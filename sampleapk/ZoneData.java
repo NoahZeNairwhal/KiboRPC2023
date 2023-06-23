@@ -33,14 +33,15 @@ public class ZoneData {
     //Maximum Z bound of big KIZ
     public static double inZMax = 5.57;
     //Meant to take into account the size of Astrobee and the randomness of the environment to avoid hitting the edges of the KOZ while pathfinding
-    public static final double AVOIDANCE = 0.28;
+    public static double AVOIDANCE = 0.1;
     //The initial number of x/y/z steps to use for calculating the next set of points (see Node.calcNext() within the intermediateData method)
     //Still trying to figure out the values for these that allows it to pathfind from anywhere without getting a memory space error by like the 3rd loop
-    public static final int XSTEPS = 14;
-    public static final int YSTEPS = 36;
-    public static final int ZSTEPS = 14;
+    public static final int XSTEPS = 35;
+    public static final int YSTEPS = 108;
+    public static final int ZSTEPS = 35;
     //A preset array containing points (double arrays with a length of 3) that are used for pathfinding
     public static final double[][][][] MASTER_POINTS = masterPoints_init(XSTEPS, YSTEPS, ZSTEPS);
+    public static int minx = 0, maxx = 0, miny = 0, maxy = 0, minz = 0, maxz = 0;
 
     //Initializes the MASTER_POINTS array using the x/y/z steps
     private static double[][][][] masterPoints_init(int xSteps, int ySteps, int zSteps) {
@@ -73,15 +74,9 @@ public class ZoneData {
         List<moveData> output = new ArrayList<moveData>();
         //The current position
         moveData currentData = new moveData();
-        //The indexes of the points in the MASTER_POINTS array that would create a x/y/z boundary just outside of the current and end points
-        int[][] name = indexWithMove(currentData, endData);
-        //Needs to be final so Node and tree can access them
-        final int[] currBounds = name[0];
-        YourService.logger.info("Current points--- {" + currentData.point.getX() + ", " + currentData.point.getY() + ", " + currentData.point.getZ() + "}");
-        YourService.logger.info("Current Bounds--- {" + currBounds[0] + ", " + currBounds[1] + ", " + currBounds[2] + "}");
-        final int[] endBounds = name[1];
-        YourService.logger.info("End points--- {" + endData.point.getX() + ", " + endData.point.getY() + ", " + endData.point.getZ() + "}");
-        YourService.logger.info("End Bounds--- {" + endBounds[0] + ", " + endBounds[1] + ", " + endBounds[2] + "}");
+        List<Integer> possible = couldCross(endData.point.getY(), currentData);
+        //List of points to not be checked when creating a new Node
+        final boolean[][][] deadBounds = new boolean[XSTEPS][YSTEPS][ZSTEPS];
 
         //A Node class for the Tree
         class Node {
@@ -99,9 +94,10 @@ public class ZoneData {
             int xBound;
             int yBound;
             int zBound;
+            int[] endBounds;
 
             //This constructor is used for the head of the Tree, AKA the currentData.
-            Node(double[] points) {
+            Node(double[] points, int[] currBounds, int[] endBounds) {
                 this.points = points;
                 totDistance = 0;
                 parent = null;
@@ -110,6 +106,7 @@ public class ZoneData {
                 this.xBound = currBounds[0];
                 this.yBound = currBounds[1];
                 this.zBound = currBounds[2];
+                this.endBounds = endBounds;
             }
 
             //Used for child Nodes, this Node will be a point in the MASTER_POINTS array
@@ -122,6 +119,7 @@ public class ZoneData {
                 this.xBound = xBound;
                 this.yBound = yBound;
                 this.zBound = zBound;
+                this.endBounds = parent.endBounds;
             }
 
             //Calculates the List of next Nodes for this Node
@@ -137,21 +135,23 @@ public class ZoneData {
                     for(int r = 0; r < MASTER_POINTS.length; r++) {
                         for(int c = yBound; lessY ? c <= endBounds[1] : c >= endBounds[1]; c += lessY ? 1 : -1) {
                             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
-                                boolean crosses = false;
-                                //The zones between the current point and the possible next point
-                                List<Integer> possibleZones = couldCross(MASTER_POINTS[r][c][d][1], data);
+                                if(!deadBounds[r][c][d]) {
+                                    boolean crosses = false;
+                                    //The zones between the current point and the possible next point
+                                    List<Integer> possibleZones = couldCross(MASTER_POINTS[r][c][d][1], data);
 
-                                //If from the current Node to the possible new point it ends up touching a KOZ, then we can discard the new point
-                                for(int i: possibleZones) {
-                                    if(touchesZone(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], i, data)) {
-                                        crosses = true;
-                                        break;
+                                    //If from the current Node to the possible new point it ends up touching a KOZ, then we can discard the new point
+                                    for (int i : possibleZones) {
+                                        if (touchesZone(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], i, data)) {
+                                            crosses = true;
+                                            break;
+                                        }
                                     }
-                                }
 
-                                //Adds a new Node if it's good
-                                if(!crosses) {
-                                    myNext.add(new Node(MASTER_POINTS[r][c][d], totDistance + distance(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], data), this, r, c, d));
+                                    //Adds a new Node if it's good
+                                    if (!crosses) {
+                                        myNext.add(new Node(MASTER_POINTS[r][c][d], totDistance + distance(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], data), this, r, c, d));
+                                    }
                                 }
                             }
                         }
@@ -161,18 +161,21 @@ public class ZoneData {
                     for(int r = xBound; lessX ? r <= endBounds[0] : r >= endBounds[0]; r += lessX ? 1 : -1) {
                         for(int c = yBound; lessY ? c <= endBounds[1] : c >= endBounds[1]; c += lessY ? 1 : -1) {
                             for(int d = zBound; lessZ ? d <= endBounds[2] : d >= endBounds[2]; d += lessZ ? 1 : -1) {
-                                boolean crosses = false;
-                                List<Integer> possibleZones = couldCross(MASTER_POINTS[r][c][d][1], data);
+                                if(!deadBounds[r][c][d]) {
+                                    boolean crosses = false;
+                                    List<Integer> possibleZones = couldCross(MASTER_POINTS[r][c][d][1], data);
 
-                                for(int i: possibleZones) {
-                                    if(touchesZone(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], i, data)) {
-                                        crosses = true;
-                                        break;
+                                    for (int i : possibleZones) {
+                                        if (touchesZone(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], i, data)) {
+                                            crosses = true;
+                                            break;
+                                        }
                                     }
-                                }
 
-                                if(!crosses) {
-                                    myNext.add(new Node(MASTER_POINTS[r][c][d], totDistance + distance(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], data), this, r, c, d));
+                                    if (!crosses) {
+                                        deadBounds[r][c][d] = true;
+                                        myNext.add(new Node(MASTER_POINTS[r][c][d], totDistance + distance(MASTER_POINTS[r][c][d][0], MASTER_POINTS[r][c][d][1], MASTER_POINTS[r][c][d][2], data), this, r, c, d));
+                                    }
                                 }
                             }
                         }
@@ -200,6 +203,7 @@ public class ZoneData {
                 lowest.add(head);
                 masterList = new ArrayList<Node>();
                 masterList.add(head);
+                deadBounds[head.xBound][head.yBound][head.zBound] = true;
             }
 
             //Calculates the next Nodes for every Node in lowest, and then updates lowest to be these new Nodes
@@ -217,7 +221,7 @@ public class ZoneData {
                     if(aNode.equals(head)) {
                         aNode.calcNext(true);
                     } else {
-                        aNode.calcNext(true);
+                        aNode.calcNext(false);
                     }
 
                     for(int i = 0; i < aNode.myNext.size(); i++) {
@@ -226,74 +230,44 @@ public class ZoneData {
                     }
 
                     newLow.addAll(aNode.myNext);
-
-                    //Basically a binary insertion algorithm to maintain order in relation to the yBounds in the masterList
-                    for(Node temp: aNode.myNext) {
-                        Node last = null;
-                        int high = masterList.size() - 1, low = 0;
-                        int i = (high + low) / 2;
-
-                        /*for(i = newLow.size() / 2; i >= 0 && i < newLow.size() && last != newLow.get(i); i = temp.yBound < newLow.get(i).yBound ? i + ((newLow.size() - i) / 2) : i / 2) {
-                            if(newLow.get(i).yBound == temp.yBound) {
-                                newLowAddIndex = i;
-                                break;
-                            }
-
-                            last = newLow.get(i);
-                        }
-
-                        if(newLow.size() > 0 && newLow.get(i) == last) {
-                            if(newLow.get(i).yBound > temp.yBound) {
-                                while(i >= 0 && last.yBound == newLow.get(i).yBound) {
-                                    i--;
-                                }
-                            } else {
-                                while(i < newLow.size() && last.yBound == newLow.get(i).yBound) {
-                                    i++;
-                                }
-                            }
-                        }
-
-                        newLow.add(i, temp);*/
-
-                        for(i = (high + low) / 2; i >= 0 && i < masterList.size() && last != masterList.get(i); i = (high + low) / 2) {
-                            if(masterList.get(i).yBound > temp.yBound) {
-                                high = i;
-                            } else {
-                                low = i;
-                            }
-
-                            last = masterList.get(i);
-                        }
-
-                        if(masterList.get(i) == last) {
-                            if(masterList.get(i).yBound > temp.yBound) {
-                                while(i >= 0 && last.yBound == masterList.get(i).yBound) {
-                                    i--;
-                                }
-
-                                i++;
-                            } else {
-                                while(i < masterList.size() && last.yBound == masterList.get(i).yBound) {
-                                    i++;
-                                }
-                            }
-                        }
-
-                        masterList.add(i, temp);
-
-                    }
-
-                    if(!lowest.contains(aNode)) {
-                        k--;
-                    } else {
-                        while(lowest.get(k) != aNode) {
-                            k--;
-                        }
-                    }
                 }
 
                 lowest = newLow;
+
+                for(Node temp: lowest) {
+                    //deadBounds.add(new int[]{temp.xBound, temp.yBound, temp.zBound});
+
+                    Node last = null;
+                    int high = masterList.size() - 1, low = 0;
+                    int i = (high + low) / 2;
+
+                    for(i = (high + low) / 2; i >= 0 && i < masterList.size() && last != masterList.get(i); i = (high + low) / 2) {
+                        if(masterList.get(i).yBound > temp.yBound) {
+                            high = i;
+                        } else {
+                            low = i;
+                        }
+
+                        last = masterList.get(i);
+                    }
+
+                    if(masterList.get(i) == last) {
+                        if(masterList.get(i).yBound > temp.yBound) {
+                            while(i >= 0 && last.yBound == masterList.get(i).yBound) {
+                                i--;
+                            }
+
+                            i++;
+                        } else {
+                            while(i < masterList.size() && last.yBound == masterList.get(i).yBound) {
+                                i++;
+                            }
+                        }
+                    }
+
+                    deadBounds[temp.xBound][temp.yBound][temp.zBound] = true;
+                    masterList.add(i, temp);
+                }
 
                 /*System.gc();
                 System.runFinalization();*/
@@ -383,6 +357,13 @@ public class ZoneData {
             //Returns the Node with the lowest distance that can get from where it is to the end point without crossing a KOZ. If no Node works, it returns null
             Node best() {
                 YourService.logger.info("Find best Node start");
+                minx = 0;
+                maxx = 0;
+                miny = 0;
+                maxy = 0;
+                minz = 0;
+                maxz = 0;
+
                 Node best = null;
                 double leastDistance = Double.MAX_VALUE;
 
@@ -392,6 +373,7 @@ public class ZoneData {
 
                     for(int i: possibleZones) {
                         if(touchesZone(low.points[0], low.points[1], low.points[2], i, endData)) {
+                            //YourService.logger.info("Low: " + low.points[0] + ", " + low.points[1] + ", " + low.points[2] + " ----- End: "  + endData.point.getX() + ", " + endData.point.getY() + ", " + endData.point.getZ() + " ----- Hit zone #" + i);
                             crosses = true;
                             break;
                         }
@@ -406,6 +388,8 @@ public class ZoneData {
                         }
                     }
                 }
+
+                YourService.logger.info("Min X: " + minx + "\tMax X: " + maxx + "\tMin Y: " + miny + "\tMax Y: " + maxy + "\tMin Z: " + minz + "\tMax Z: " + maxz);
 
                 YourService.logger.info("Find best Node end");
 
@@ -430,8 +414,88 @@ public class ZoneData {
             }
         }
 
+        for(int i = 0; i < possible.size(); i++) {
+            if(!touchesZone(currentData.point.getX(), currentData.point.getY(), currentData.point.getZ(), i, endData)) {
+                continue;
+            }
+
+            moveData midData = new moveData(new Point(currentData.point.getX(), (outYMin[i] + outYMax[i]) / 2.0, currentData.point.getZ()), endData.quaternion, true);
+
+            if(touchesZone(currentData.point.getX(), (outYMin[i] + outYMax[i]) / 2.0, currentData.point.getZ(), i, currentData)) {
+                midData = new moveData((new Point(currentData.point.getX(), (outYMin[i] + outYMax[i]) / 2.0, outZMax[i] + (AVOIDANCE * 1.5))), endData.quaternion, true);
+            } else {
+                output.add(midData);
+                continue;
+            }
+
+            //The indexes of the points in the MASTER_POINTS array that would create a x/y/z boundary just outside of the current and end points
+            int[][] name = indexWithMove(currentData, midData);
+            //Needs to be final so Node and tree can access them
+            int[] currBounds = name[0];
+            YourService.logger.info("Current points--- {" + currentData.point.getX() + ", " + currentData.point.getY() + ", " + currentData.point.getZ() + "}");
+            YourService.logger.info("Current Bounds--- {" + currBounds[0] + ", " + currBounds[1] + ", " + currBounds[2] + "}");
+            int[] endBounds = name[1];
+            YourService.logger.info("Middle points--- {" + midData.point.getX() + ", " + midData.point.getY() + ", " + midData.point.getZ() + "}");
+            YourService.logger.info("Middle Bounds--- {" + endBounds[0] + ", " + endBounds[1] + ", " + endBounds[2] + "}");
+
+            //Constructs a new Tree with the head as the current Data
+            Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}, currBounds, endBounds));
+            Node useThis = wow.best();
+
+            //While there are no Nodes that can get to the end point
+            while(useThis == null) {
+                YourService.logger.info("Use this loop active");
+                //Calculate another level
+                wow.calcNext();
+                //At some point best should return something other than null
+                useThis = wow.best();
+
+                //System.gc();
+                //System.runFinalization();
+
+                //Break if needed
+                if(YourService.myApi.getTimeRemaining().get(1) <= 105000 && !YourService.bypass) {
+                    YourService.moveToGoal = true;
+                    return output;
+                }
+            }
+
+            //Constructs the output List "backwards" by using the Node that worked and including every Node except for the head Node, since the head is the current position
+            //Note this also excludes the end point
+            int index = output.size();
+            for(Node temp = useThis; temp.parent != null; temp = temp.parent) {
+                output.add(index, temp.data);
+            }
+
+            wow.nullify();
+            wow = null;
+            useThis = null;
+            currentData = midData;
+
+            for(int r = 0; r < deadBounds.length; r++) {
+                for(int c = 0; c < deadBounds[0].length; c++) {
+                    for(int d = 0; d < deadBounds[0][0].length; d++) {
+                        deadBounds[r][c][d] = false;
+                    }
+                }
+            }
+
+            System.gc();
+            System.runFinalization();
+        }
+
+        //The indexes of the points in the MASTER_POINTS array that would create a x/y/z boundary just outside of the current and end points
+        int[][] name = indexWithMove(currentData, endData);
+        //Needs to be final so Node and tree can access them
+        int[] currBounds = name[0];
+        YourService.logger.info("Current points--- {" + currentData.point.getX() + ", " + currentData.point.getY() + ", " + currentData.point.getZ() + "}");
+        YourService.logger.info("Current Bounds--- {" + currBounds[0] + ", " + currBounds[1] + ", " + currBounds[2] + "}");
+        int[] endBounds = name[1];
+        YourService.logger.info("End points--- {" + endData.point.getX() + ", " + endData.point.getY() + ", " + endData.point.getZ() + "}");
+        YourService.logger.info("End Bounds--- {" + endBounds[0] + ", " + endBounds[1] + ", " + endBounds[2] + "}");
+
         //Constructs a new Tree with the head as the current Data
-        Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}));
+        Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}, currBounds, endBounds));
         Node useThis = wow.best();
 
         //While there are no Nodes that can get to the end point
@@ -446,7 +510,7 @@ public class ZoneData {
             //System.runFinalization();
 
             //Break if needed
-            if(YourService.myApi.getTimeRemaining().get(1) <= 120000 && !YourService.bypass) {
+            if(YourService.myApi.getTimeRemaining().get(1) <= 105000 && !YourService.bypass) {
                 YourService.moveToGoal = true;
                 return output;
             }
@@ -454,8 +518,9 @@ public class ZoneData {
 
         //Constructs the output List "backwards" by using the Node that worked and including every Node except for the head Node, since the head is the current position
         //Note this also excludes the end point
+        int index = output.size();
         for(Node temp = useThis; temp.parent != null; temp = temp.parent) {
-            output.add(0, temp.data);
+            output.add(index, temp.data);
         }
 
         wow.nullify();
@@ -477,13 +542,19 @@ public class ZoneData {
         boolean lessX = current.point.getX() <= end.point.getX();
         boolean lessY = current.point.getY() <= end.point.getY();
         boolean lessZ = current.point.getZ() <= end.point.getZ();
+        boolean curr = false, endA = false;
 
         if(lessX) {
             for(int r = 0; r < MASTER_POINTS.length; r++) {
                 if(MASTER_POINTS[r][0][0][0] >= end.point.getX()) {
                     endArr[0] = r;
+                    endA = true;
                     break;
                 }
+            }
+
+            if(!endA) {
+                endArr[0] = MASTER_POINTS.length - 1;
             }
 
             for(int r = MASTER_POINTS.length - 1; r >= 0; r--) {
@@ -492,12 +563,18 @@ public class ZoneData {
                     break;
                 }
             }
+
         } else {
             for(int r = 0; r < MASTER_POINTS.length; r++) {
                 if(MASTER_POINTS[r][0][0][0] >= current.point.getX()) {
                     currentArr[0] = r;
+                    curr = true;
                     break;
                 }
+            }
+
+            if(!curr) {
+                currentArr[0] = MASTER_POINTS.length - 1;
             }
 
             for(int r = MASTER_POINTS.length - 1; r >= 0; r--) {
@@ -512,8 +589,17 @@ public class ZoneData {
             for(int c = 0; c < MASTER_POINTS[0].length; c++) {
                 if(MASTER_POINTS[0][c][0][1] >= end.point.getY()) {
                     endArr[1] = c;
+                    endA = true;
                     break;
                 }
+            }
+
+            if(!endA) {
+                endArr[1] = MASTER_POINTS[0].length - 1;
+            }
+
+            if(!endA) {
+                endArr[1] = MASTER_POINTS[0].length;
             }
 
             for(int c = MASTER_POINTS[0].length - 1; c >= 0; c--) {
@@ -526,13 +612,19 @@ public class ZoneData {
             for(int c = 0; c < MASTER_POINTS[0].length; c++) {
                 if(MASTER_POINTS[0][c][0][1] >= current.point.getY()) {
                     currentArr[1] = c;
+                    curr = true;
                     break;
                 }
+            }
+
+            if(!curr) {
+                currentArr[1] = MASTER_POINTS[0].length - 1;
             }
 
             for(int c = MASTER_POINTS[0].length - 1; c >= 0; c--) {
                 if(MASTER_POINTS[0][c][0][1] <= end.point.getY()) {
                     endArr[1] = c;
+                    endA = true;
                     break;
                 }
             }
@@ -542,13 +634,19 @@ public class ZoneData {
             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
                 if(MASTER_POINTS[0][0][d][2] >= end.point.getZ()) {
                     endArr[2] = d;
+                    endA = true;
                     break;
                 }
+            }
+
+            if(!endA) {
+                endArr[2] = MASTER_POINTS[0][0].length - 1;
             }
 
             for(int d = MASTER_POINTS[0][0].length - 1; d >= 0; d--) {
                 if(MASTER_POINTS[0][0][d][2] <= current.point.getZ()) {
                     currentArr[2] = d;
+                    curr = true;
                     break;
                 }
             }
@@ -556,13 +654,19 @@ public class ZoneData {
             for(int d = 0; d < MASTER_POINTS[0][0].length; d++) {
                 if(MASTER_POINTS[0][0][d][2] >= current.point.getZ()) {
                     currentArr[2] = d;
+                    curr = true;
                     break;
                 }
+            }
+
+            if(!curr) {
+                currentArr[2] = MASTER_POINTS[0][0].length - 1;
             }
 
             for(int d = MASTER_POINTS[0][0].length - 1; d >= 0; d--) {
                 if(MASTER_POINTS[0][0][d][2] <= end.point.getZ()) {
                     endArr[2] = d;
+                    endA = true;
                     break;
                 }
             }
@@ -575,7 +679,7 @@ public class ZoneData {
     }
 
     //Returns the distance between the current point and the point (x,y,z)
-    private static double distance(double x, double y, double z, moveData current) {
+    public static double distance(double x, double y, double z, moveData current) {
         return Math.sqrt(Math.pow(current.point.getX() - x, 2) + Math.pow(current.point.getY() - y, 2) + Math.pow(current.point.getZ() - z, 2));
     }
 
@@ -590,7 +694,7 @@ public class ZoneData {
                 }
             }
         } else {
-            for(int i = 0; i < outYMax.length; i++) {
+            for(int i = outYMax.length - 1; i >= 0; i--) {
                 if(outYMin[i] <= current.point.getY() && outYMax[i] >= y) {
                     output.add(i);
                 }
@@ -607,6 +711,9 @@ public class ZoneData {
 
     //Calculates whether a given point that isn't the current point touches a given zone
     public static boolean touchesZone(double x, double y, double z, int zoneIndex, moveData current) {
+        boolean lessX = x >= current.point.getX();
+        boolean lessY = y >= current.point.getY();
+        boolean lessZ = z >= current.point.getZ();
         //t is defined as the time it takes to travel to current. Every variable will take one t to reach current
         if(Math.abs(x - current.point.getX()) > 0.01) {
             double tMin = (outXMin[zoneIndex] - current.point.getX()) / (x - current.point.getX());
@@ -618,10 +725,14 @@ public class ZoneData {
             boolean goodZMin = zMin + AVOIDANCE <= outZMin[zoneIndex] || zMin - AVOIDANCE >= outZMax[zoneIndex];
             boolean goodZMax = zMax + AVOIDANCE <= outZMin[zoneIndex] || zMax - AVOIDANCE >= outZMax[zoneIndex];
 
-            if(!(goodYMin || goodZMin)) {
+            if(!(goodYMin || goodZMin) && !(lessX ? tMin < 0 : tMin > 1)) {
+                //YourService.logger.info("Reason: Bad try with xMin for t");
+                minx++;
                 return true;
             }
-            if(!(goodYMax || goodZMax)) {
+            if(!(goodYMax || goodZMax) && !(lessX ? tMax > 1 : tMax < 0)) {
+                //YourService.logger.info("Reason: Bad try with xMax for t");
+                maxx++;
                 return true;
             }
         }
@@ -635,10 +746,14 @@ public class ZoneData {
             boolean goodZMin = zMin + AVOIDANCE <= outZMin[zoneIndex] || zMin - AVOIDANCE >= outZMax[zoneIndex];
             boolean goodZMax = zMax + AVOIDANCE <= outZMin[zoneIndex] || zMax - AVOIDANCE >= outZMax[zoneIndex];
 
-            if(!(goodXMin || goodZMin)) {
+            if(!(goodXMin || goodZMin) && !(lessY ? tMin < 0 : tMin > 1)) {
+                //YourService.logger.info("Reason: Bad try with yMin for t");
+                miny++;
                 return true;
             }
-            if(!(goodXMax || goodZMax)) {
+            if(!(goodXMax || goodZMax) && !(lessY ? tMax > 1 : tMax < 0)) {
+                //YourService.logger.info("Reason: Bad try with yMax for t");
+                maxy++;
                 return true;
             }
         }
@@ -652,10 +767,14 @@ public class ZoneData {
             boolean goodYMin = yMin + AVOIDANCE <= outYMin[zoneIndex] || yMin - AVOIDANCE >= outYMax[zoneIndex];
             boolean goodYMax = yMax + AVOIDANCE <= outYMin[zoneIndex] || yMax - AVOIDANCE >= outYMax[zoneIndex];
 
-            if(!(goodXMin || goodYMin)) {
+            if(!(goodXMin || goodYMin) && !(lessZ ? tMin < 0 : tMin > 1)) {
+                //YourService.logger.info("Reason: Bad try with zMin for t");
+                minz++;
                 return true;
             }
-            if(!(goodXMax || goodYMax)) {
+            if(!(goodXMax || goodYMax) && !(lessZ ? tMax > 1 : tMax < 0)) {
+                //YourService.logger.info("Reason: Bad try with zMax for t");
+                maxz++;
                 return true;
             }
         }
@@ -671,21 +790,5 @@ public class ZoneData {
     }
     private static double calcZ(double t, double z, moveData current) {
         return current.point.getZ() + t * (z - current.point.getZ());
-    }
-
-    //Returns a list of possible points given the bounds and steps for calculation
-    //MASTER_POINTS obseletes this
-    public static List<double[]> possiblePoints(double xMin, double xMax, double yMin, double yMax, double zMin, double zMax, int steps) {
-        List<double[]> output = new ArrayList<double[]>();
-
-        for(double x = xMin; x <= xMax; x += (xMax - xMin) / steps) {
-            for(double y = yMin; y <= yMax; y += (yMax - yMin) / steps) {
-                for(double z = zMin; z <= zMax; z += (zMax - zMin) / steps) {
-                    output.add(new double[]{x, y, z});
-                }
-            }
-        }
-
-        return output;
     }
 }
