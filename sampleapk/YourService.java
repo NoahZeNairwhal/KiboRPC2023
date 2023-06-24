@@ -65,7 +65,7 @@ public class YourService extends KiboRpcService {
                 }
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 135000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 150000 && !bypass) {
                     moveToGoal = true;
                     break;
                 }
@@ -134,7 +134,7 @@ public class YourService extends KiboRpcService {
                     counter++;
                 }
 
-                if (myApi.getTimeRemaining().get(1) <= 135000 && !bypass) {
+                if (myApi.getTimeRemaining().get(1) <= 150000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
