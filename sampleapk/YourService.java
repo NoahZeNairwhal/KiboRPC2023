@@ -65,7 +65,7 @@ public class YourService extends KiboRpcService {
                 }
 
                 //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 130000 && !bypass) {
+                if(myApi.getTimeRemaining().get(1) <= 135000 && !bypass) {
                     moveToGoal = true;
                     break;
                 }
@@ -118,8 +118,8 @@ public class YourService extends KiboRpcService {
     }*/
 
     public static void CraigMoveTo(int targetNum, int tries) {
-        for(int j = 0; j <= 7 && !TargetData.updated[targetNum - 1].equals(myApi.getRobotKinematics()); j++) {
-            ZoneData.AVOIDANCE = 0.14 - 0.02 * j;
+        for(int j = 0; j <= 5 && !TargetData.updated[targetNum - 1].equals(myApi.getRobotKinematics()); j++) {
+            ZoneData.AVOIDANCE = 0.15 - 0.03 * j;
             //Gets the list of points to go to
             List<moveData> dataPoints = ZoneData.intermediateData(TargetData.updated[targetNum - 1]);
             //Adds the endpoint (otherwise it wouldn't go to the point it's supposed to)
@@ -134,7 +134,7 @@ public class YourService extends KiboRpcService {
                     counter++;
                 }
 
-                if (myApi.getTimeRemaining().get(1) <= 130000 && !bypass) {
+                if (myApi.getTimeRemaining().get(1) <= 135000 && !bypass) {
                     moveToGoal = true;
                     return;
                 }
