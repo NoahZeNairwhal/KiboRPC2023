@@ -454,7 +454,7 @@ public class ZoneData {
                 //System.runFinalization();
 
                 //Break if needed
-                if(YourService.myApi.getTimeRemaining().get(1) <= 130000 && !YourService.bypass) {
+                if(YourService.myApi.getTimeRemaining().get(1) <= 135000 && !YourService.bypass) {
                     YourService.moveToGoal = true;
                     return output;
                 }
@@ -510,7 +510,7 @@ public class ZoneData {
             //System.runFinalization();
 
             //Break if needed
-            if(YourService.myApi.getTimeRemaining().get(1) <= 130000 && !YourService.bypass) {
+            if(YourService.myApi.getTimeRemaining().get(1) <= 135000 && !YourService.bypass) {
                 YourService.moveToGoal = true;
                 return output;
             }
