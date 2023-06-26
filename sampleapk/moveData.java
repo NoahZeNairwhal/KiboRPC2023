@@ -15,7 +15,6 @@ public class moveData {
     public static final double P_TOLERANCE = 0.2;
     //Same as above but for the angle (radians)
     public static final double A_TOLERANCE = 0.1;
-    public double totDistance = 0.0;
 
     //Creates a moveData representation of the current Kinematics
     public moveData() {
