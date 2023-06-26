@@ -6,6 +6,8 @@ import ff_msgs.Zone;
 import gov.nasa.arc.astrobee.types.Point;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcApi;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
+
+import java.lang.annotation.Target;
 import java.util.List;
 
 /**
@@ -19,33 +21,36 @@ public class YourService extends KiboRpcService {
     public static KiboRpcApi myApi;
     public static boolean moveToGoal = false;
     public static boolean bypass = false;
+    public static boolean scanned = false;
+    public static moveData current;
+    public static final double BUFFER_TIME = 0;
+    public static int prevTarg = 7;
 
     @Override
     protected void runPlan1() {
         myApi = api;
         myApi.startMission();
 
-        //While more than a minute total time remains
+        for(int i = 0; i < 5 && !scanned; i++) {
+            CraigMoveTo(7);
+            QRDecipher.decipher();
+        }
+
+        prevTarg = 7;
+
         while(!moveToGoal) {
-            moveData current = new moveData();
             List<Integer> active = myApi.getActiveTargets();
+            List<Integer> actual = TargetData.determiner(prevTarg, active);
 
-            for(int i = 0; i < active.size(); i++) {
-                double leastDistance = ZoneData.distance(current.point.getX(), current.point.getY(), current.point.getZ(), TargetData.updated[active.get(i)]);
-
-                for(int j = i + 1; j < active.size(); j++) {
-                    double tempDistance = ZoneData.distance(current.point.getX(), current.point.getY(), current.point.getZ(), TargetData.updated[active.get(j)]);
-
-                    if(tempDistance < leastDistance) {
-                        int temp = active.get(i);
-                        active.set(i, active.get(j));
-                        active.set(j, temp);
-                    }
+            for(Integer i: actual) {
+                if(TargetData.times[prevTarg - 1][i - 1] + TargetData.times[i - 1][7] + BUFFER_TIME > myApi.getTimeRemaining().get(1)) {
+                    moveToGoal = true;
+                    break;
                 }
-            }
+                if(TargetData.times[prevTarg - 1][i - 1] > myApi.getTimeRemaining().get(0)) {
+                    break;
+                }
 
-            //For each active target
-            for(Integer i: active) {
                 logger.info("I should be going to Target #" + i);
 
                 CraigMoveTo(i);
@@ -64,34 +69,11 @@ public class YourService extends KiboRpcService {
                     myApi.takeTargetSnapshot(i);
                 }
 
-                //Checks again in case a lot of targets are active, so that it can break out and go to the goal instead of continuing to snapshot targets
-                if(myApi.getTimeRemaining().get(1) <= 150000 && !bypass) {
-                    moveToGoal = true;
-                    break;
-                }
+                prevTarg = i;
             }
         }
 
         bypass = true;
-        logger.info("QRCode moveTo start");
-        //7 is the QR Code
-        CraigMoveTo(7);
-        logger.info("QRCode moveTo end");
-        logger.info("QRCode decipher start");
-        QRDecipher.decipher();
-        logger.info("QRCode decipher end");
-        myApi.notifyGoingToGoal();
-        /*logger.info("Down movement start");
-        //The Bee runs into a lot of KOZ violations trying to move directly to the goal, so we're going to move it down a bit first
-        int num = 0;
-        boolean succeed = false;
-
-        while(num < 3 && !succeed) {
-            succeed = myApi.moveTo(new Point(11.381944, -8.8, 5), myApi.getRobotKinematics().getOrientation(), true).hasSucceeded();
-            num++;
-        }
-
-        logger.info("Down movement end");*/
         //8 is the goal
         logger.info("Goal moveTo start");
         CraigMoveTo(8);
@@ -110,7 +92,7 @@ public class YourService extends KiboRpcService {
     }
 
     public static void CraigMoveTo(int targetNum) {
-        CraigMoveTo(targetNum, 3);
+        CraigMoveTo(targetNum, 2);
     }
 
     /*public static void CraigMoveTo(moveData endData) {
@@ -133,22 +115,35 @@ public class YourService extends KiboRpcService {
                     succeeded = myApi.moveTo(dataPoints.get(i).point, dataPoints.get(i).quaternion, dataPoints.get(i).print).hasSucceeded();
                     counter++;
                 }
-
-                if (myApi.getTimeRemaining().get(1) <= 150000 && !bypass) {
-                    moveToGoal = true;
-                    return;
-                }
             }
         }
 
-        if(targetNum <= 6) {
+        /*if(targetNum <= 6) {
             logger.info("ARDetector start");
             ARDetector.detect();
             logger.info("ARDetector end");
-        }
+        }*/
     }
 
-    /*//Same as above method but with a specific moveData
+    /*public static double getTime(double distance) {
+        //I <3 calc
+        double delta = 0.01;
+        double tot = 0.0;
+        double a = 0.02;
+        double v = 0.0;
+        double p = 0.0;
+
+        while(p < distance) {
+            v = Math.min(v + (a * delta), 0.4);
+            p += 2 * (v * delta);
+            tot += delta;
+        }
+
+        return tot * 2;
+    }
+
+
+    //Same as above method but with a specific moveData
     public static void CraigMoveTo(moveData endData, int tries) {
         //Gets the list of points to go to
         List<moveData> dataPoints = ZoneData.intermediateData(endData);
