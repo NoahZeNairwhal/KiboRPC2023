@@ -33,12 +33,12 @@ public class ZoneData {
     //Maximum Z bound of big KIZ
     public static double inZMax = 5.57;
     //Meant to take into account the size of Astrobee and the randomness of the environment to avoid hitting the edges of the KOZ while pathfinding
-    public static double AVOIDANCE = 0.15;
+    public static double AVOIDANCE = 0.1;
     //The initial number of x/y/z steps to use for calculating the next set of points (see Node.calcNext() within the intermediateData method)
     //Still trying to figure out the values for these that allows it to pathfind from anywhere without getting a memory space error by like the 3rd loop
-    public static final int XSTEPS = 50;
-    public static final int YSTEPS = 120;
-    public static final int ZSTEPS = 50;
+    public static final int XSTEPS = 35;
+    public static final int YSTEPS = 108;
+    public static final int ZSTEPS = 35;
     //A preset array containing points (double arrays with a length of 3) that are used for pathfinding
     public static final double[][][][] MASTER_POINTS = masterPoints_init(XSTEPS, YSTEPS, ZSTEPS);
     public static int minx = 0, maxx = 0, miny = 0, maxy = 0, minz = 0, maxz = 0;
@@ -77,7 +77,6 @@ public class ZoneData {
         List<Integer> possible = couldCross(endData.point.getY(), currentData);
         //List of points to not be checked when creating a new Node
         final boolean[][][] deadBounds = new boolean[XSTEPS][YSTEPS][ZSTEPS];
-        double totDistance = 0.0;
 
         //A Node class for the Tree
         class Node {
@@ -98,9 +97,9 @@ public class ZoneData {
             int[] endBounds;
 
             //This constructor is used for the head of the Tree, AKA the currentData.
-            Node(double[] points, int[] currBounds, int[] endBounds, double totDistance) {
+            Node(double[] points, int[] currBounds, int[] endBounds) {
                 this.points = points;
-                this.totDistance = totDistance;
+                totDistance = 0;
                 parent = null;
                 myNext = new ArrayList<Node>();
                 data = toMoveData();
@@ -426,8 +425,6 @@ public class ZoneData {
                 midData = new moveData((new Point(currentData.point.getX(), (outYMin[i] + outYMax[i]) / 2.0, outZMax[i] + (AVOIDANCE * 1.5))), endData.quaternion, true);
             } else {
                 output.add(midData);
-                totDistance += distance(currentData.point.getX(), currentData.point.getY(), currentData.point.getZ(), midData);
-                output.get(output.size() - 1).totDistance = totDistance;
                 continue;
             }
 
@@ -442,7 +439,7 @@ public class ZoneData {
             YourService.logger.info("Middle Bounds--- {" + endBounds[0] + ", " + endBounds[1] + ", " + endBounds[2] + "}");
 
             //Constructs a new Tree with the head as the current Data
-            Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}, currBounds, endBounds, totDistance));
+            Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}, currBounds, endBounds));
             Node useThis = wow.best();
 
             //While there are no Nodes that can get to the end point
@@ -456,14 +453,11 @@ public class ZoneData {
                 //System.gc();
                 //System.runFinalization();
 
-                /*//Break if needed
-                YourService.logger.info("Distance: " + ZoneData.distance(YourService.current.point.getX(), YourService.current.point.getY(), YourService.current.point.getZ(), TargetData.updated[7]));
-                YourService.logger.info("Time to goal: " + 8000 * (ZoneData.distance(YourService.current.point.getX(), YourService.current.point.getY(), YourService.current.point.getZ(), TargetData.updated[7]) / 0.25));
-                YourService.logger.info("Time remaining: " + YourService.myApi.getTimeRemaining().get(1));
-                if(YourService.myApi.getTimeRemaining().get(1) <= 8000 * (distance(YourService.current.point.getX(), YourService.current.point.getY(), YourService.current.point.getZ(), TargetData.updated[7]) / 0.25) && !YourService.bypass) {
+                //Break if needed
+                if(YourService.myApi.getTimeRemaining().get(1) <= 150000 && !YourService.bypass) {
                     YourService.moveToGoal = true;
                     return output;
-                }*/
+                }
             }
 
             //Constructs the output List "backwards" by using the Node that worked and including every Node except for the head Node, since the head is the current position
@@ -471,10 +465,7 @@ public class ZoneData {
             int index = output.size();
             for(Node temp = useThis; temp.parent != null; temp = temp.parent) {
                 output.add(index, temp.data);
-                output.get(index).totDistance = temp.totDistance;
             }
-
-            totDistance = useThis.totDistance;
 
             wow.nullify();
             wow = null;
@@ -504,7 +495,7 @@ public class ZoneData {
         YourService.logger.info("End Bounds--- {" + endBounds[0] + ", " + endBounds[1] + ", " + endBounds[2] + "}");
 
         //Constructs a new Tree with the head as the current Data
-        Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}, currBounds, endBounds, totDistance));
+        Tree wow = new Tree(new Node(new double[]{currentData.point.getX(), currentData.point.getY(), currentData.point.getZ()}, currBounds, endBounds));
         Node useThis = wow.best();
 
         //While there are no Nodes that can get to the end point
@@ -518,14 +509,11 @@ public class ZoneData {
             //System.gc();
             //System.runFinalization();
 
-            /*//Break if needed
-            YourService.logger.info("Distance: " + ZoneData.distance(YourService.current.point.getX(), YourService.current.point.getY(), YourService.current.point.getZ(), TargetData.updated[7]));
-            YourService.logger.info("Time to goal: " + 8000 * (ZoneData.distance(YourService.current.point.getX(), YourService.current.point.getY(), YourService.current.point.getZ(), TargetData.updated[7]) / 0.25));
-            YourService.logger.info("Time remaining: " + YourService.loTimeRemaining().get(1));
-            if(YourService.myApi.getTimeRemaining().get(1) <= 8000 * (distance(YourService.current.point.getX(), YourService.current.point.getY(), YourService.current.point.getZ(), TargetData.updated[7]) / 0.25) && !YourService.bypass) {
+            //Break if needed
+            if(YourService.myApi.getTimeRemaining().get(1) <= 150000 && !YourService.bypass) {
                 YourService.moveToGoal = true;
                 return output;
-            }*/
+            }
         }
 
         //Constructs the output List "backwards" by using the Node that worked and including every Node except for the head Node, since the head is the current position
@@ -533,7 +521,6 @@ public class ZoneData {
         int index = output.size();
         for(Node temp = useThis; temp.parent != null; temp = temp.parent) {
             output.add(index, temp.data);
-            output.get(index).totDistance = temp.totDistance;
         }
 
         wow.nullify();
