@@ -23,7 +23,7 @@ public class YourService extends KiboRpcService {
     public static boolean bypass = false;
     public static boolean scanned = false;
     public static moveData current;
-    public static final double BUFFER_TIME = 0;
+    public static final double BUFFER_TIME = 5000;
     public static int prevTarg = 7;
 
     @Override
