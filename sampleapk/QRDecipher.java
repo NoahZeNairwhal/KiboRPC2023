@@ -35,22 +35,16 @@ public class QRDecipher {
 
         //Match it up with the correct report message
         if(qrString.equals("JEM")) {
-            YourService.scanned = true;
             reportString = "STAY_AT_JEM";
         } else if(qrString.equals("COLUMBUS")) {
-            YourService.scanned = true;
             reportString = "GO_TO_COLUMBUS";
         } else if(qrString.equals("RACK1")) {
-            YourService.scanned = true;
             reportString = "CHECK_RACK_1";
         } else if(qrString.equals("ASTROBEE")) {
-            YourService.scanned = true;
             reportString = "I_AM_HERE";
         } else if(qrString.equals("INTBALL")) {
-            YourService.scanned = true;
             reportString = "LOOKING_FORWARD_TO_SEE_YOU";
-        } else if(qrString.equals("BLANK")){
-            YourService.scanned = true;
+        } else {
             reportString = "NO_PROBLEM";
         }
 
